@@ -71,8 +71,8 @@ class Version():
 
     def to_file(self, version_filepath):
         with open(version_filepath, 'w') as f:
-            for key, part in self.parts.items():
-                f.write("{0} = {1}\n".format(key, part.value))
+            for part in self.parts.values():
+                f.write("{0.name} = {0!r}\n".format(part))
 
     @classmethod
     def from_file(cls, version_filepath, version_description):

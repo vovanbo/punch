@@ -75,6 +75,9 @@ class IntegerVersionPart(VersionPart):
         else:
             self.set(value)
 
+    def __repr__(self):
+        return "{}".format(self.value)
+
     def inc(self):
         self.value = self.value + 1
 
@@ -101,6 +104,9 @@ class ValueListVersionPart(VersionPart):
 
         # When copying this does not take the object itself
         self.values = [v for v in allowed_values]
+
+    def __repr__(self):
+        return "'{}'".format(self.value)
 
     def set(self, value):
         if value not in self.allowed_values:
@@ -132,6 +138,9 @@ class DateVersionPart(VersionPart):
             self.value = strftime(fmt)
         else:
             self.value = value
+
+    def __repr__(self):
+        return "'{}'".format(self.value)
 
     def reset(self):
         self.value = strftime(self.fmt)

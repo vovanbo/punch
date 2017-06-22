@@ -58,7 +58,7 @@ default_commit_message = \
 
 def show_version_parts(values):
     for p in values:
-        print("{}={}".format(p.name, p.value))
+        print(repr(p))
 
 
 def show_version_updates(version_changes):
@@ -260,10 +260,7 @@ def main(original_args=None):
                 print("* Updating version file")
 
             for i in new_version.keys:
-                f.write('{name} = {value}\n'.format(
-                    name=new_version.parts[i].name,
-                    value=new_version.parts[i].value
-                ))
+                f.write('{0.name} = {0!r}\n'.format(new_version.parts[i]))
 
         if vcs_configuration is not None:
             uc.finish_release()
