@@ -58,7 +58,7 @@ default_commit_message = \
 
 def show_version_parts(values):
     for p in values:
-        print(repr(p))
+        print("{0.name} = {0!r}".format(p))
 
 
 def show_version_updates(version_changes):
