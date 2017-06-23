@@ -1,6 +1,6 @@
 import pytest
 import six
-from punch.vcs_repositories import vcs_repo as vr, exceptions as re
+from punch.vcs_repositories import base as vr, exceptions as re
 
 if six.PY2:
     import mock

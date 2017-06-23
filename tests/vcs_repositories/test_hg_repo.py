@@ -4,12 +4,15 @@ import os
 import pytest
 
 import sys
+
 from six.moves import configparser
 
-from punch import vcs_configuration as vc
-from punch.vcs_repositories import hg_repo as hr, exceptions as re
+from punch.vcs_configuration import VCSConfiguration
+from punch.vcs_repositories.exceptions import (
+    RepositorySystemError, RepositoryStatusError, RepositoryConfigurationError
+)
+from punch.vcs_repositories.hg_repo import HgRepo
 from tests.conftest import safe_devnull
-
 
 pytestmark = pytest.mark.slow
 
@@ -93,20 +96,20 @@ def temp_hg_dir(temp_empty_hg_dir, safe_devnull):
 @pytest.fixture
 def hg_other_branch(temp_hg_dir):
     hg_repo_add_branch(temp_hg_dir, "other")
-    hg_repo_change_branch(temp_hg_dir, hr.HgRepo.DEFAULT_BRANCH)
+    hg_repo_change_branch(temp_hg_dir, HgRepo.DEFAULT_BRANCH)
     return temp_hg_dir
 
 
 @pytest.fixture
 def empty_vcs_configuration():
-    return vc.VCSConfiguration(
+    return VCSConfiguration(
         'hg', {}, {}, {'current_version': 'a', 'new_version': 'b'}
     )
 
 
 @pytest.fixture
 def other_branch_vcs_configuration():
-    return vc.VCSConfiguration(
+    return VCSConfiguration(
         'hg', {"branch": "other"}, {},
         {'current_version': 'a', 'new_version': 'b'}
     )
@@ -116,13 +119,13 @@ def other_branch_vcs_configuration():
 def ready_to_finish_repo(temp_hg_dir, **kwargs):
     release_name = "1.0"
     commit_message = "A commit message"
-    config = vc.VCSConfiguration(
+    config = VCSConfiguration(
         'git', kwargs, global_variables={},
         special_variables={'new_version': release_name},
         commit_message=commit_message
     )
 
-    repo = hr.HgRepo(temp_hg_dir, config)
+    repo = HgRepo(temp_hg_dir, config)
     repo.pre_start_release()
     repo.start_release()
 
@@ -132,31 +135,31 @@ def ready_to_finish_repo(temp_hg_dir, **kwargs):
 
 
 def test_init(temp_empty_hg_dir, empty_vcs_configuration):
-    repo = hr.HgRepo(temp_empty_hg_dir, empty_vcs_configuration)
+    repo = HgRepo(temp_empty_hg_dir, empty_vcs_configuration)
     assert repo.working_path == temp_empty_hg_dir
 
 
 def test_init_with_uninitialized_dir(temp_empty_dir, empty_vcs_configuration):
-    with pytest.raises(re.RepositorySystemError) as exc:
-        hr.HgRepo(temp_empty_dir, empty_vcs_configuration)
+    with pytest.raises(RepositorySystemError) as exc:
+        HgRepo(temp_empty_dir, empty_vcs_configuration)
 
     assert str(exc.value) == \
-        "The current directory {} is not a Hg repository".format(
-            temp_empty_dir)
+           "The current directory {} is not a Hg repository".format(
+               temp_empty_dir)
 
 
 def test_get_current_branch(temp_hg_dir, empty_vcs_configuration):
-    repo = hr.HgRepo(temp_hg_dir, empty_vcs_configuration)
+    repo = HgRepo(temp_hg_dir, empty_vcs_configuration)
     assert repo.get_current_branch() == repo.DEFAULT_BRANCH
 
 
 def test_get_tags(temp_hg_dir, empty_vcs_configuration):
-    repo = hr.HgRepo(temp_hg_dir, empty_vcs_configuration)
+    repo = HgRepo(temp_hg_dir, empty_vcs_configuration)
     assert repo.get_tags() == 'tip'
 
 
 def test_pre_start_release(temp_hg_dir, empty_vcs_configuration):
-    repo = hr.HgRepo(temp_hg_dir, empty_vcs_configuration)
+    repo = HgRepo(temp_hg_dir, empty_vcs_configuration)
     repo.pre_start_release()
 
     assert repo.get_current_branch() == repo.DEFAULT_BRANCH
@@ -165,7 +168,7 @@ def test_pre_start_release(temp_hg_dir, empty_vcs_configuration):
 def test_pre_start_release_start_from_different_branch(
         temp_hg_dir, empty_vcs_configuration):
     hg_dir = temp_hg_dir
-    repo = hr.HgRepo(hg_dir, empty_vcs_configuration)
+    repo = HgRepo(hg_dir, empty_vcs_configuration)
     hg_repo_add_branch(hg_dir, "other")
     repo.pre_start_release()
     assert repo.get_current_branch() == repo.DEFAULT_BRANCH
@@ -174,7 +177,7 @@ def test_pre_start_release_start_from_different_branch(
 def test_pre_start_release_should_use_other_branch(
         temp_hg_dir, other_branch_vcs_configuration):
     hg_dir = temp_hg_dir
-    repo = hr.HgRepo(hg_dir, other_branch_vcs_configuration)
+    repo = HgRepo(hg_dir, other_branch_vcs_configuration)
     hg_repo_add_branch(hg_dir, "other")
     repo.pre_start_release()
     hg_repo_change_branch(hg_dir, repo.DEFAULT_BRANCH)
@@ -187,8 +190,8 @@ def test_pre_start_release_in_unclean_state(
     hg_dir = temp_hg_dir
     with open(os.path.join(hg_dir, "README.md"), "w") as f:
         f.writelines(["Uncommitted lines"])
-    repo = hr.HgRepo(hg_dir, empty_vcs_configuration)
-    with pytest.raises(re.RepositoryStatusError):
+    repo = HgRepo(hg_dir, empty_vcs_configuration)
+    with pytest.raises(RepositoryStatusError):
         repo.pre_start_release()
 
     assert repo.get_current_branch() == repo.DEFAULT_BRANCH
@@ -200,8 +203,8 @@ def test_pre_start_release_starting_from_different_branch_in_unclean_state(
     hg_repo_add_branch(hg_dir, "other")
     with open(os.path.join(hg_dir, "README.md"), "w") as f:
         f.writelines(["Uncommitted lines"])
-    repo = hr.HgRepo(hg_dir, empty_vcs_configuration)
-    with pytest.raises(re.RepositoryStatusError):
+    repo = HgRepo(hg_dir, empty_vcs_configuration)
+    with pytest.raises(RepositoryStatusError):
         repo.pre_start_release()
 
     assert repo.get_current_branch() == "other"
@@ -209,7 +212,7 @@ def test_pre_start_release_starting_from_different_branch_in_unclean_state(
 
 def test_start_release_should_be_in_defined_branch(
         hg_other_branch, other_branch_vcs_configuration):
-    repo = hr.HgRepo(hg_other_branch, other_branch_vcs_configuration)
+    repo = HgRepo(hg_other_branch, other_branch_vcs_configuration)
     repo.pre_start_release()
     repo.start_release()
     assert repo.get_current_branch() == "other"
@@ -217,7 +220,7 @@ def test_start_release_should_be_in_defined_branch(
 
 def test_finish_release_without_changes(
         hg_other_branch, other_branch_vcs_configuration):
-    repo = hr.HgRepo(hg_other_branch, other_branch_vcs_configuration)
+    repo = HgRepo(hg_other_branch, other_branch_vcs_configuration)
     repo.pre_start_release()
     repo.start_release()
     repo.finish_release()
@@ -228,7 +231,7 @@ def test_finish_release_without_changes(
 def test_finish_should_recover_start_branch(
         hg_other_branch, other_branch_vcs_configuration):
     hg_repo_add_branch(hg_other_branch, "third")
-    repo = hr.HgRepo(hg_other_branch, other_branch_vcs_configuration)
+    repo = HgRepo(hg_other_branch, other_branch_vcs_configuration)
     repo.pre_start_release()
     repo.start_release()
     repo.finish_release()
@@ -277,13 +280,12 @@ def test_finish_release_custom_tag_cannot_contain_spaces(temp_hg_dir):
     commit_message = "A commit message"
     tag = "Version {}".format(release_name)
 
-    config = vc.VCSConfiguration('hg', {'tag': tag}, global_variables={},
-                                 special_variables={
-                                     'new_version': release_name},
-                                 commit_message=commit_message)
+    config = VCSConfiguration('hg', {'tag': tag}, global_variables={},
+                              special_variables={'new_version': release_name},
+                              commit_message=commit_message)
 
-    with pytest.raises(re.RepositoryConfigurationError):
-        hr.HgRepo(temp_hg_dir, config)
+    with pytest.raises(RepositoryConfigurationError):
+        HgRepo(temp_hg_dir, config)
 
 
 def test_finish_release_custom_tag_cannot_be_a_number(temp_hg_dir):
@@ -291,29 +293,28 @@ def test_finish_release_custom_tag_cannot_be_a_number(temp_hg_dir):
     commit_message = "A commit message"
     tag = "12234"
 
-    config = vc.VCSConfiguration('hg', {'tag': tag}, global_variables={},
-                                 special_variables={
-                                     'new_version': release_name},
-                                 commit_message=commit_message)
+    config = VCSConfiguration('hg', {'tag': tag}, global_variables={},
+                              special_variables={'new_version': release_name},
+                              commit_message=commit_message)
 
-    with pytest.raises(re.RepositoryConfigurationError):
-        hr.HgRepo(temp_hg_dir, config)
+    with pytest.raises(RepositoryConfigurationError):
+        HgRepo(temp_hg_dir, config)
 
 
 def test_start_summary(temp_hg_dir, empty_vcs_configuration):
-    repo = hr.HgRepo(temp_hg_dir, empty_vcs_configuration)
+    repo = HgRepo(temp_hg_dir, empty_vcs_configuration)
     repo.pre_start_release()
     assert repo.get_summary() == {"branch": "default", "commit": "(clean)",
                                   "update": "(current)"}
 
 
 def test_get_branches(hg_other_branch, empty_vcs_configuration):
-    repo = hr.HgRepo(hg_other_branch, empty_vcs_configuration)
+    repo = HgRepo(hg_other_branch, empty_vcs_configuration)
     assert {"default", "other"} == repo.get_branches()
 
 
 def test_tag(temp_hg_dir, empty_vcs_configuration):
-    repo = hr.HgRepo(temp_hg_dir, empty_vcs_configuration)
+    repo = HgRepo(temp_hg_dir, empty_vcs_configuration)
 
     repo.tag("just_a_tag")
 

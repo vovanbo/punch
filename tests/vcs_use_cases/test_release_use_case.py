@@ -1,10 +1,11 @@
 import mock
-from punch.vcs_use_cases import release as rel
+
+from punch.vcs_use_cases.release import VCSReleaseUseCase
 
 
 def test_pre_start_release():
     repo = mock.Mock()
-    use_case = rel.VCSReleaseUseCase(repo)
+    use_case = VCSReleaseUseCase(repo)
 
     use_case.pre_start_release()
 
@@ -14,7 +15,7 @@ def test_pre_start_release():
 
 def test_pre_start_release_can_be_called_without_release_name():
     repo = mock.Mock()
-    use_case = rel.VCSReleaseUseCase(repo)
+    use_case = VCSReleaseUseCase(repo)
 
     use_case.pre_start_release()
 
@@ -24,7 +25,7 @@ def test_pre_start_release_can_be_called_without_release_name():
 
 def test_start_release():
     repo = mock.Mock()
-    use_case = rel.VCSReleaseUseCase(repo)
+    use_case = VCSReleaseUseCase(repo)
 
     use_case.start_release()
 
@@ -34,7 +35,7 @@ def test_start_release():
 
 def test_finish_release():
     repo = mock.Mock()
-    use_case = rel.VCSReleaseUseCase(repo)
+    use_case = VCSReleaseUseCase(repo)
 
     use_case.finish_release()
 
@@ -44,7 +45,7 @@ def test_finish_release():
 
 def test_post_finish_release():
     repo = mock.Mock()
-    use_case = rel.VCSReleaseUseCase(repo)
+    use_case = VCSReleaseUseCase(repo)
 
     use_case.post_finish_release()
 

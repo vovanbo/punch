@@ -2,8 +2,12 @@ import subprocess
 
 import os
 import pytest
-from punch import vcs_configuration as vc
-from punch.vcs_repositories import git_flow_repo as gfr, exceptions as re
+from punch.vcs_configuration import VCSConfiguration
+
+from punch.vcs_repositories.exceptions import (
+    RepositoryStatusError, RepositorySystemError
+)
+from punch.vcs_repositories.git_flow_repo import GitFlowRepo
 
 pytestmark = pytest.mark.slow
 
@@ -59,37 +63,37 @@ def temp_gitflow_dir(temp_empty_git_dir, safe_devnull):
 
 @pytest.fixture
 def empty_vcs_configuration():
-    return vc.VCSConfiguration('git', {}, {},
-                               {'current_version': 'a', 'new_version': 'b'})
+    return VCSConfiguration('git', {}, {},
+                            {'current_version': 'a', 'new_version': 'b'})
 
 
 def test_init(temp_empty_git_dir, empty_vcs_configuration):
-    repo = gfr.GitFlowRepo(temp_empty_git_dir, empty_vcs_configuration)
+    repo = GitFlowRepo(temp_empty_git_dir, empty_vcs_configuration)
 
     assert repo.working_path == temp_empty_git_dir
 
 
 def test_get_current_branch(temp_gitflow_dir, empty_vcs_configuration):
-    repo = gfr.GitFlowRepo(temp_gitflow_dir, empty_vcs_configuration)
+    repo = GitFlowRepo(temp_gitflow_dir, empty_vcs_configuration)
     assert repo.get_current_branch() == 'develop'
 
 
 def test_get_tags(temp_gitflow_dir, empty_vcs_configuration):
-    repo = gfr.GitFlowRepo(temp_gitflow_dir, empty_vcs_configuration)
+    repo = GitFlowRepo(temp_gitflow_dir, empty_vcs_configuration)
     assert repo.get_tags() == ''
 
 
 def test_init_with_uninitialized_dir(temp_empty_dir, empty_vcs_configuration):
-    with pytest.raises(re.RepositorySystemError) as exc:
-        gfr.GitFlowRepo(temp_empty_dir, empty_vcs_configuration)
+    with pytest.raises(RepositorySystemError) as exc:
+        GitFlowRepo(temp_empty_dir, empty_vcs_configuration)
 
     assert str(exc.value) == \
-        "The current directory {} is not a Git repository".format(
-            temp_empty_dir)
+           "The current directory {} is not a Git repository".format(
+               temp_empty_dir)
 
 
 def test_pre_start_release(temp_gitflow_dir, empty_vcs_configuration):
-    repo = gfr.GitFlowRepo(temp_gitflow_dir, empty_vcs_configuration)
+    repo = GitFlowRepo(temp_gitflow_dir, empty_vcs_configuration)
     repo.pre_start_release()
 
 
@@ -101,7 +105,7 @@ def test_pre_start_release_starting_from_different_branch(
         stderr=safe_devnull
     )
 
-    repo = gfr.GitFlowRepo(temp_gitflow_dir, empty_vcs_configuration)
+    repo = GitFlowRepo(temp_gitflow_dir, empty_vcs_configuration)
     repo.pre_start_release()
 
     assert repo.get_current_branch() == 'develop'
@@ -117,7 +121,7 @@ def test_pre_start_release_starting_from_different_branch_w_unstaged_changes(
     with open(os.path.join(temp_gitflow_dir, "README.md"), "w") as f:
         f.writelines(["Unstaged lines"])
 
-    repo = gfr.GitFlowRepo(temp_gitflow_dir, empty_vcs_configuration)
+    repo = GitFlowRepo(temp_gitflow_dir, empty_vcs_configuration)
 
     repo.pre_start_release()
 
@@ -139,13 +143,13 @@ def test_pre_start_release_starting_from_different_branch_w_uncomm_changes(
         stderr=safe_devnull
     )
 
-    repo = gfr.GitFlowRepo(temp_gitflow_dir, empty_vcs_configuration)
-    with pytest.raises(gfr.RepositoryStatusError):
+    repo = GitFlowRepo(temp_gitflow_dir, empty_vcs_configuration)
+    with pytest.raises(RepositoryStatusError):
         repo.pre_start_release()
 
 
 def test_start_release(temp_gitflow_dir, empty_vcs_configuration):
-    repo = gfr.GitFlowRepo(temp_gitflow_dir, empty_vcs_configuration)
+    repo = GitFlowRepo(temp_gitflow_dir, empty_vcs_configuration)
     repo.pre_start_release()
     repo.start_release()
     assert repo.get_current_branch() == "release/b"
@@ -154,7 +158,7 @@ def test_start_release(temp_gitflow_dir, empty_vcs_configuration):
 def test_finish_release_without_changes(
         temp_gitflow_dir, empty_vcs_configuration):
     release_name = empty_vcs_configuration.options['new_version']
-    repo = gfr.GitFlowRepo(temp_gitflow_dir, empty_vcs_configuration)
+    repo = GitFlowRepo(temp_gitflow_dir, empty_vcs_configuration)
     repo.pre_start_release()
     repo.start_release()
     repo.finish_release()
@@ -166,7 +170,7 @@ def test_finish_release_with_changes(
         temp_gitflow_dir, empty_vcs_configuration):
     release_name = empty_vcs_configuration.options['new_version']
 
-    repo = gfr.GitFlowRepo(temp_gitflow_dir, empty_vcs_configuration)
+    repo = GitFlowRepo(temp_gitflow_dir, empty_vcs_configuration)
     repo.pre_start_release()
     repo.start_release()
 
@@ -179,7 +183,7 @@ def test_finish_release_with_changes(
 
 
 def test_tag(temp_gitflow_dir, empty_vcs_configuration):
-    repo = gfr.GitFlowRepo(temp_gitflow_dir, empty_vcs_configuration)
+    repo = GitFlowRepo(temp_gitflow_dir, empty_vcs_configuration)
 
     repo.tag("just_a_tag")
 

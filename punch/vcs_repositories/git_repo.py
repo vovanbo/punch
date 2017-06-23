@@ -1,11 +1,12 @@
 import os
 import six
-from punch.vcs_repositories import exceptions as e
-from punch.vcs_repositories import vcs_repo as vr
+from punch.vcs_repositories.base import VCSRepo
+from punch.vcs_repositories.exceptions import (
+    RepositoryConfigurationError, RepositorySystemError, RepositoryStatusError
+)
 
 
-class GitRepo(vr.VCSRepo):
-
+class GitRepo(VCSRepo):
     def __init__(self, working_path, config_obj):
         if six.PY2:
             super(GitRepo, self).__init__(working_path, config_obj)
@@ -21,9 +22,10 @@ class GitRepo(vr.VCSRepo):
         # Tag names cannot contain spaces
         tag = self.config_obj.options.get('tag', '')
         if ' ' in tag:
-            raise e.RepositoryConfigurationError(
-                """You specified "'tag': {}".""".format(tag) +
-                "Tag names cannot contain spaces")
+            raise RepositoryConfigurationError(
+                "You specified \"'tag': {}\". "
+                "Tag names cannot contain spaces".format(tag)
+            )
 
     def _check_system(self):
         if six.PY2:
@@ -32,9 +34,10 @@ class GitRepo(vr.VCSRepo):
             super()._check_system()
 
         if not os.path.exists(os.path.join(self.working_path, '.git')):
-            raise e.RepositorySystemError(
-                "The current directory {}".format(self.working_path) +
-                " is not a Git repository")
+            raise RepositorySystemError(
+                "The current directory {} "
+                "is not a Git repository".format(self.working_path)
+            )
 
     def _set_command(self):
         self.commands = ['git']
@@ -56,25 +59,24 @@ class GitRepo(vr.VCSRepo):
     def pre_start_release(self):
         output = self._run([self.command, "status"])
         if "Changes to be committed:" in output:
-            raise e.RepositoryStatusError(
-                "Cannot checkout master while repository" +
-                " contains uncommitted changes")
+            raise RepositoryStatusError(
+                "Cannot checkout master while repository "
+                "contains uncommitted changes"
+            )
 
         self._run([self.command, "checkout", "master"])
 
         branch = self.get_current_branch()
 
         if branch != "master":
-            raise e.RepositoryStatusError(
+            raise RepositoryStatusError(
                 "Current branch shall be master but is {}".format(branch))
 
     def start_release(self):
         if self.make_release_branch:
             self._run([
-                self.command,
-                "checkout",
-                "-b",
-                self.config_obj.options['new_version']
+                self.command, "checkout",
+                "-b", self.config_obj.options['new_version']
             ])
 
     def finish_release(self):
@@ -110,12 +112,9 @@ class GitRepo(vr.VCSRepo):
             annotation_message = self.config_obj.options.get(
                 'annotation_message', "Version {{ new_version }}")
             self._run([
-                self.command,
-                "tag",
-                "-a",
-                tag_value,
-                "-m",
-                annotation_message
+                self.command, "tag",
+                "-a", tag_value,
+                "-m", annotation_message
             ])
         else:
             self._run([self.command, "tag", tag_value])

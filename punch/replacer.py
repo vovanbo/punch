@@ -5,41 +5,35 @@ from jinja2 import Template
 
 class Replacer:
     def __init__(self, serializers):
-
         if isinstance(serializers, collections.MutableSequence):
-            self.serializers = serializers
+            self.serializers = [Template(s) for s in serializers]
         else:
-            self.serializers = [serializers]
+            self.serializers = [Template(serializers)]
 
-    def run_all_serializers(self, current_version_dict, new_version_dict):
-        summary = []
-        for serializer in self.serializers:
-            template = Template(serializer)
-
-            summary.append((
-                template.render(**current_version_dict),
-                template.render(**new_version_dict)
-            ))
-
-        return summary
-
-    def run_main_serializer(self, current_version_dict, new_version_dict):
-        return self.run_all_serializers(
-            current_version_dict,
-            new_version_dict
-        )[0]
-
-    def replace(self, text, current_version, new_version):
+    def __call__(self, text, current_version, new_version):
         if six.PY2:
             text = text.decode('utf8')
 
         new_text = text
         for serializer in self.serializers:
-            template = Template(serializer)
+            search_pattern = serializer.render(
+                **dict(current_version.simplify())
+            )
+            replace_pattern = serializer.render(**dict(new_version.simplify()))
 
-            _search_pattern = template.render(**current_version)
-            _replace_pattern = template.render(**new_version)
-
-            new_text = new_text.replace(_search_pattern, _replace_pattern)
+            new_text = new_text.replace(search_pattern, replace_pattern)
 
         return new_text
+
+    def run_all_serializers(self, current_version, new_version):
+        summary = []
+        for serializer in self.serializers:
+            summary.append((
+                serializer.render(**dict(current_version.simplify())),
+                serializer.render(**dict(new_version.simplify()))
+            ))
+
+        return summary
+
+    def run_main_serializer(self, current_version, new_version):
+        return self.run_all_serializers(current_version, new_version)[0]

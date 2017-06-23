@@ -3,8 +3,8 @@
 import os
 import pytest
 
-from punch import version as ver
-from punch import version_part as vp
+from punch.version import Version
+from punch.version_part import IntegerVersionPart, ValueListVersionPart
 
 
 def clean_previous_imports():
@@ -17,7 +17,7 @@ def clean_previous_imports():
 
 @pytest.fixture
 def version_mmp():
-    v = ver.Version()
+    v = Version()
     v.create_part('major', 4)
     v.create_part('minor', 3)
     v.create_part('patch', 1)
@@ -26,7 +26,7 @@ def version_mmp():
 
 @pytest.fixture
 def version_mmpb():
-    v = ver.Version()
+    v = Version()
     v.create_part('major', 4)
     v.create_part('minor', 3)
     v.create_part('patch', 1)
@@ -35,27 +35,27 @@ def version_mmpb():
 
 
 def test_version_default_part_is_integer():
-    v = ver.Version()
+    v = Version()
     v.create_part('major', 4)
-    assert isinstance(v.get_part('major'), vp.IntegerVersionPart)
+    assert isinstance(v.get_part('major'), IntegerVersionPart)
 
 
 def test_version_add_parts():
-    v = ver.Version()
-    part_major = vp.IntegerVersionPart('major', 4)
-    part_minor = vp.IntegerVersionPart('minor', 3)
+    v = Version()
+    part_major = IntegerVersionPart('major', 4)
+    part_minor = IntegerVersionPart('minor', 3)
     v.add_part(part_major)
     v.add_part(part_minor)
 
     assert v.get_part('major').value == 4
     assert v.get_part('minor').value == 3
-    assert v.keys == ['major', 'minor']
+    assert tuple(v.keys()) == ('major', 'minor')
 
 
 def test_version_may_specify_part_class():
-    v = ver.Version()
-    v.create_part('major', 4, vp.ValueListVersionPart, [0, 2, 4, 6, 8])
-    assert isinstance(v.get_part('major'), vp.ValueListVersionPart)
+    v = Version()
+    v.create_part('major', 4, ValueListVersionPart, [0, 2, 4, 6, 8])
+    assert isinstance(v.get_part('major'), ValueListVersionPart)
     assert v.get_part('major').value == 4
     assert v.get_part('major').values == [0, 2, 4, 6, 8]
 
@@ -144,18 +144,22 @@ def test_version_compare_differ(version_mmp):
 
 
 def test_version_as_list(version_mmp):
-    assert version_mmp.as_list() == [('major', 4), ('minor', 3), ('patch', 1)]
+    assert list(version_mmp.simplify()) == [('major', 4),
+                                            ('minor', 3),
+                                            ('patch', 1)]
 
 
 def test_version_keys_and_values(version_mmp):
-    assert version_mmp.keys == ['major', 'minor', 'patch']
-    assert [i.value for i in version_mmp.values] == [4, 3, 1]
+    assert tuple(version_mmp.keys()) == ('major', 'minor', 'patch')
+    assert [i.value for i in version_mmp.values()] == [4, 3, 1]
 
 
 def test_version_keys_keep_indertion_order(version_mmp):
-    minor = version_mmp.parts.pop('minor')
+    minor = version_mmp.pop('minor')
     version_mmp.add_part(minor)
-    assert version_mmp.as_list() == [('major', 4), ('patch', 1), ('minor', 3)]
+    assert list(version_mmp.simplify()) == [('major', 4),
+                                            ('patch', 1),
+                                            ('minor', 3)]
 
 
 def test_version_as_dict(version_mmp):
@@ -165,74 +169,4 @@ def test_version_as_dict(version_mmp):
         'patch': 1
     }
 
-    assert version_mmp.as_dict() == expected_dict
-
-
-def test_write_version_file(temp_empty_dir, version_mmp):
-    clean_previous_imports()
-
-    version_filepath = os.path.join(temp_empty_dir, 'punch_version.py')
-
-    version_mmp.to_file(version_filepath)
-
-    with open(version_filepath, 'r') as f:
-        content = sorted(f.readlines())
-
-    expected_content = [
-        "major = 4\n",
-        "minor = 3\n",
-        "patch = 1\n"
-    ]
-
-    assert content == expected_content
-
-
-def test_read_complete_version_from_file(temp_empty_dir, version_mmp):
-    clean_previous_imports()
-
-    version_filepath = os.path.join(temp_empty_dir, 'punch_version.py')
-
-    with open(version_filepath, 'w') as f:
-        f.writelines(["major = 4\n", "minor = 3\n", "patch = 1\n"])
-
-    version_description = [
-        {
-            'name': 'major',
-            'type': 'integer'
-        },
-        {
-            'name': 'minor',
-            'type': 'integer'
-        },
-        {
-            'name': 'patch',
-            'type': 'integer'
-        }
-    ]
-
-    version = ver.Version.from_file(version_filepath, version_description)
-
-    assert version.keys == ['major', 'minor', 'patch']
-    assert len(version.parts) == 3
-    assert version.parts['major'].value == 4
-    assert version.parts['minor'].value == 3
-    assert version.parts['patch'].value == 1
-
-
-def test_read_simplified_version_from_file(temp_empty_dir, version_mmp):
-    clean_previous_imports()
-
-    version_filepath = os.path.join(temp_empty_dir, 'punch_version.py')
-
-    with open(version_filepath, 'w') as f:
-        f.writelines(["major = 4\n", "minor = 3\n", "patch = 1\n"])
-
-    version_description = ['major', 'minor', 'patch']
-
-    version = ver.Version.from_file(version_filepath, version_description)
-
-    assert version.keys == ['major', 'minor', 'patch']
-    assert len(version.parts) == 3
-    assert version.parts['major'].value == 4
-    assert version.parts['minor'].value == 3
-    assert version.parts['patch'].value == 1
+    assert dict(version_mmp.simplify()) == expected_dict

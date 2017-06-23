@@ -1,59 +1,37 @@
 #!/usr/bin/env python
 
 import argparse
+import json
+import os
 import sys
 
-import os
+
 import punch
-from punch import config as cfr
-from punch import file_updater as fu
-from punch import replacer as rep
-from punch import vcs_configuration as vcsc
-from punch import version as ver
-from punch import action as act
-from punch.vcs_repositories import exceptions as rex
-from punch.vcs_repositories import git_flow_repo as gfr
-from punch.vcs_repositories import git_repo as gr
-from punch.vcs_use_cases import release as ruc
+from punch.action import Action
+from punch.config import PunchConfig, ConfigurationVersionError
+from punch.defaults import DEFAULT_CONFIG, DEFAULT_CONFIG_FILE
+from punch.file_updater import FileUpdater
+from punch.replacer import Replacer
+from punch.vcs_configuration import VCSConfiguration
+from punch.vcs_repositories.exceptions import RepositorySystemError
+from punch.vcs_repositories.git_flow_repo import GitFlowRepo
+from punch.vcs_repositories.git_repo import GitRepo
+from punch.vcs_repositories.hg_repo import HgRepo
+from punch.vcs_use_cases.release import VCSReleaseUseCase
+
+VCS_REPO_MAP = {
+    'git': GitRepo,
+    'git-flow': GitFlowRepo,
+    'hg': HgRepo
+}
 
 
 def fatal_error(message, exception=None):
     print(message)
     if exception is not None:
-        print("Exception {}: {}".format(
-            exception.__class__.__name__,
-            str(exception)
-        ))
+        print("Exception {}: {}".format(exception.__class__.__name__,
+                                        str(exception)))
     sys.exit(1)
-
-
-default_config_file_name = "punch_config.py"
-
-default_config_file_content = """__config_version__ = 1
-
-GLOBALS = {
-    'serializer': '{{major}}.{{minor}}.{{patch}}',
-}
-
-FILES = []
-
-VERSION = ['major', 'minor', 'patch']
-
-VCS = {
-    'name': 'git',
-    'commit_message': "Version updated from {{ current_version }} to {{ new_version }}",
-}
-"""
-
-default_version_file_name = "punch_version.py"
-
-default_version_file_content = """major = 0
-minor = 1
-patch = 0
-"""
-
-default_commit_message = \
-    "Version update {{ current_version }} -> {{ new_version }}"
 
 
 def show_version_parts(values):
@@ -71,9 +49,7 @@ def main(original_args=None):
         description="Manages file content with versions."
     )
     parser.add_argument('-c', '--config-file', action='store',
-                        help="Config file", default=default_config_file_name)
-    parser.add_argument('-v', '--version-file', action='store',
-                        help="Version file", default=default_version_file_name)
+                        help="Config file", default=DEFAULT_CONFIG_FILE)
     parser.add_argument('-p', '--part', action='store')
     parser.add_argument('--set-part', action='store')
     parser.add_argument('-a', '--action', action='store')
@@ -85,15 +61,15 @@ def main(original_args=None):
     parser.add_argument(
         '--init',
         action='store_true',
-        help="Writes default initialization files" +
-             " (does not overwrite existing ones)"
+        help="Writes default initialization files "
+             "(does not overwrite existing ones)"
     )
     parser.add_argument(
         '-s',
         '--simulate',
         action='store_true',
-        help="Simulates the version increment and" +
-             " prints a summary of the relevant data"
+        help="Simulates the version increment and "
+             "prints a summary of the relevant data"
     )
 
     args = parser.parse_args()
@@ -111,14 +87,9 @@ def main(original_args=None):
         sys.exit(0)
 
     if args.init is True:
-        if not os.path.exists(default_config_file_name):
-            with open(default_config_file_name, 'w') as f:
-                f.write(default_config_file_content)
-
-        if not os.path.exists(default_version_file_name):
-            with open(default_version_file_name, 'w') as f:
-                f.write(default_version_file_content)
-
+        if not os.path.exists(args.config_file):
+            with open(args.config_file, 'w') as f:
+                json.dump(DEFAULT_CONFIG, f, indent=4)
         sys.exit(0)
 
     if not any([args.part, args.set_part, args.action]):
@@ -127,16 +98,15 @@ def main(original_args=None):
     if args.set_part and args.reset_on_set:
         set_parts = args.set_part.split(',')
         if len(set_parts) > 1:
-            fatal_error(
-                "If you specify --reset-on-set you may set only one value"
-            )
+            fatal_error("If you specify --reset-on-set you may set "
+                        "only one value")
 
     if args.verbose:
         print("## Punch version {}".format(punch.__version__))
 
     try:
-        config = cfr.PunchConfig(args.config_file)
-    except (cfr.ConfigurationVersionError, ValueError) as exc:
+        config = PunchConfig(args.config_file)
+    except (ConfigurationVersionError, ValueError) as exc:
         fatal_error(
             "An error occurred while reading the configuration file.",
             exc
@@ -146,12 +116,11 @@ def main(original_args=None):
         if len(config.files) == 0:
             fatal_error("You didn't configure any file")
 
-    current_version = ver.Version.from_file(args.version_file, config.version)
-    new_version = current_version.copy()
+    new_version = config.version.copy()
 
     if args.action:
         action_dict = config.actions[args.action]
-        action = act.Action.from_dict(action_dict)
+        action = Action.from_dict(action_dict)
         new_version = action.process_version(new_version)
     else:
         if args.part:
@@ -165,12 +134,9 @@ def main(original_args=None):
                 set_dict = dict(i.split('=') for i in args.set_part.split(','))
                 new_version.set(set_dict)
 
-    global_replacer = rep.Replacer(config.globals['serializer'])
+    global_replacer = Replacer(config.globals['serializer'])
     current_version_string, new_version_string = \
-        global_replacer.run_main_serializer(
-            current_version.as_dict(),
-            new_version.as_dict()
-        )
+        global_replacer.run_main_serializer(config.version, new_version)
 
     if config.vcs is not None:
         special_variables = {
@@ -178,7 +144,7 @@ def main(original_args=None):
             'new_version': new_version_string
         }
 
-        vcs_configuration = vcsc.VCSConfiguration.from_dict(
+        vcs_configuration = VCSConfiguration.from_dict(
             config.vcs,
             config.globals,
             special_variables
@@ -188,27 +154,22 @@ def main(original_args=None):
 
     if args.simulate:
         print("* Current version")
-        show_version_parts(current_version.values)
+        show_version_parts(config.version.values)
 
         print("\n* New version")
         show_version_parts(new_version.values)
 
-        changes = global_replacer.run_all_serializers(
-            current_version.as_dict(),
-            new_version.as_dict()
-        )
+        changes = global_replacer.run_all_serializers(config.version,
+                                                      new_version)
 
         print("\n* Global version updates")
         show_version_updates(changes)
 
         print("\nConfigured files")
         for file_configuration in config.files:
-            updater = fu.FileUpdater(file_configuration)
+            updater = FileUpdater(file_configuration)
             print("* {}: ".format(file_configuration.path))
-            changes = updater.get_summary(
-                current_version.as_dict(),
-                new_version.as_dict()
-            )
+            changes = updater.get_summary(config.version, new_version)
             show_version_updates(changes)
 
         if vcs_configuration is not None:
@@ -219,24 +180,19 @@ def main(original_args=None):
 
     else:
         if vcs_configuration is not None:
-            if vcs_configuration.name == 'git':
-                repo_class = gr.GitRepo
-            elif vcs_configuration.name == 'git-flow':
-                repo_class = gfr.GitFlowRepo
-            else:
+            repo_class = VCS_REPO_MAP.get(vcs_configuration.name)
+            if repo_class is None:
                 fatal_error(
-                    "The requested version control" +
-                    " system {} is not supported.".format(
-                        vcs_configuration.name
-                    )
+                    "The requested version control "
+                    "system {} is not supported.".format(vcs_configuration.name)
                 )
 
             try:
                 repo = repo_class(os.getcwd(), vcs_configuration)
-            except rex.RepositorySystemError as exc:
+            except RepositorySystemError as exc:
                 fatal_error(
-                    "An error occurred while initializing" +
-                    " the version control repository",
+                    "An error occurred while initializing "
+                    "the version control repository",
                     exc
                 )
         else:
@@ -245,15 +201,15 @@ def main(original_args=None):
         if vcs_configuration is not None:
             # TODO: Create a fake UseCase to allow running this
             # without a repo and outside this nasty if
-            uc = ruc.VCSReleaseUseCase(repo)
+            uc = VCSReleaseUseCase(repo)
             uc.pre_start_release()
             uc.start_release()
 
         for file_configuration in config.files:
             if args.verbose:
                 print("* Updating file {}".format(file_configuration.path))
-            updater = fu.FileUpdater(file_configuration)
-            updater.update(current_version.as_dict(), new_version.as_dict())
+            updater = FileUpdater(file_configuration)
+            updater(config.version, new_version)
 
         with open(args.version_file, 'w') as f:
             if args.verbose:

@@ -2,15 +2,14 @@ import subprocess
 
 import os
 import six
-from punch.vcs_repositories import git_repo as gr
+from punch.vcs_repositories.git_repo import GitRepo
 from punch.vcs_repositories.exceptions import (
     RepositoryStatusError,
     RepositorySystemError
 )
 
 
-class GitFlowRepo(gr.GitRepo):
-
+class GitFlowRepo(GitRepo):
     def __init__(self, working_path, config_obj):
         if six.PY2:
             super(GitFlowRepo, self).__init__(working_path, config_obj)
@@ -44,8 +43,9 @@ class GitFlowRepo(gr.GitRepo):
         output = self._run([self.command, "status"])
         if "Changes to be committed:" in output:
             raise RepositoryStatusError(
-                "Cannot checkout master while repository" +
-                " contains uncommitted changes")
+                "Cannot checkout master while repository "
+                "contains uncommitted changes"
+            )
 
         self._run([self.command, "checkout", "develop"])
 
@@ -58,8 +58,7 @@ class GitFlowRepo(gr.GitRepo):
     def start_release(self):
         self._run(
             self.commands + [
-                "release",
-                "start",
+                "release", "start",
                 self.config_obj.options['new_version']
             ])
 
@@ -84,10 +83,8 @@ class GitFlowRepo(gr.GitRepo):
 
         self._run(
             self.commands + [
-                "release",
-                "finish",
-                "-m",
-                branch,
+                "release", "finish",
+                "-m", branch,
                 self.config_obj.options['new_version']
             ])
 

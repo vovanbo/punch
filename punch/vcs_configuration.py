@@ -2,16 +2,16 @@ import collections
 
 from jinja2 import Template
 
+from punch.defaults import DEFAULT_COMMIT_MESSAGE
+
 
 class VCSConfiguration(object):
-
     def __init__(self, name, options, global_variables, special_variables,
                  commit_message=None, finish_release=True):
         self.name = name
 
         if commit_message is None:
-            commit_message = \
-                "Version updated {{ current_version }} -> {{ new_version }}"
+            commit_message = DEFAULT_COMMIT_MESSAGE
 
         commit_message_template = Template(commit_message)
 
@@ -34,16 +34,13 @@ class VCSConfiguration(object):
         self.options.update(special_variables)
 
     @classmethod
-    def from_dict(cls, vcs_configuration_dict,
+    def from_dict(cls, vcs_configuration,
                   global_variables, special_variables):
         return VCSConfiguration(
-            vcs_configuration_dict['name'],
-            vcs_configuration_dict.get('options', {}),
+            vcs_configuration['name'],
+            vcs_configuration.get('options', {}),
             global_variables,
             special_variables,
-            vcs_configuration_dict.get(
-                'commit_message', None),
-            vcs_configuration_dict.get(
-                'finish_release', True
-            )
+            vcs_configuration.get('commit_message', None),
+            vcs_configuration.get('finish_release', True)
         )

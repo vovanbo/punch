@@ -3,8 +3,38 @@
 import os
 import pytest
 import six
-from punch import file_configuration as fc
-from punch import file_updater as fu
+
+from punch.file_configuration import FileConfiguration
+from punch.file_updater import FileUpdater
+from punch.version import Version
+from punch.version_part import IntegerVersionPart
+
+
+@pytest.fixture
+def current_version():
+    v = Version()
+    v.add_part(IntegerVersionPart('major', 1))
+    v.add_part(IntegerVersionPart('minor', 2))
+    v.add_part(IntegerVersionPart('patch', 3))
+    return v
+
+
+@pytest.fixture
+def new_patch_version():
+    v = Version()
+    v.add_part(IntegerVersionPart('major', 1))
+    v.add_part(IntegerVersionPart('minor', 2))
+    v.add_part(IntegerVersionPart('patch', 4))
+    return v
+
+
+@pytest.fixture
+def new_minor_version():
+    v = Version()
+    v.add_part(IntegerVersionPart('major', 1))
+    v.add_part(IntegerVersionPart('minor', 3))
+    v.add_part(IntegerVersionPart('patch', 0))
+    return v
 
 
 @pytest.fixture
@@ -31,28 +61,18 @@ def temp_dir_with_version_file_partial(temp_empty_dir):
     return temp_empty_dir
 
 
-def test_file_updater(temp_dir_with_version_file):
+def test_file_updater(temp_dir_with_version_file, current_version,
+                      new_patch_version):
     filepath = os.path.join(temp_dir_with_version_file, "__init__.py")
-
-    current_version = {
-        'major': 1,
-        'minor': 2,
-        'patch': 3
-    }
-    new_version = {
-        'major': 1,
-        'minor': 2,
-        'patch': 4
-    }
 
     local_variables = {
         'serializer': "__version__ = \"{{major}}.{{minor}}.{{patch}}\""
     }
 
-    file_config = fc.FileConfiguration(filepath, local_variables)
+    file_config = FileConfiguration(filepath, local_variables)
 
-    updater = fu.FileUpdater(file_config)
-    updater.update(current_version, new_version)
+    updater = FileUpdater(file_config)
+    updater(current_version, new_patch_version)
 
     with open(filepath, 'r') as f:
         new_file_content = f.read()
@@ -61,28 +81,17 @@ def test_file_updater(temp_dir_with_version_file):
 
 
 def test_file_updater_with_unicode_characters(
-        temp_dir_with_unicode_version_file):
+        temp_dir_with_unicode_version_file, current_version, new_patch_version):
     filepath = os.path.join(temp_dir_with_unicode_version_file, "__init__.py")
-
-    current_version = {
-        'major': 1,
-        'minor': 2,
-        'patch': 3
-    }
-    new_version = {
-        'major': 1,
-        'minor': 2,
-        'patch': 4
-    }
 
     local_variables = {
         'serializer': "__version⚠__ = \"{{major}}.{{minor}}.{{patch}}\""
     }
 
-    file_config = fc.FileConfiguration(filepath, local_variables)
+    file_config = FileConfiguration(filepath, local_variables)
 
-    updater = fu.FileUpdater(file_config)
-    updater.update(current_version, new_version)
+    updater = FileUpdater(file_config)
+    updater(current_version, new_patch_version)
 
     with open(filepath, 'r') as f:
         new_file_content = f.read()
@@ -91,28 +100,17 @@ def test_file_updater_with_unicode_characters(
 
 
 def test_file_updater_with_partial_serializer(
-        temp_dir_with_version_file_partial):
+        temp_dir_with_version_file_partial, current_version, new_minor_version):
     filepath = os.path.join(temp_dir_with_version_file_partial, "__init__.py")
-
-    current_version = {
-        'major': 1,
-        'minor': 2,
-        'patch': 3
-    }
-    new_version = {
-        'major': 1,
-        'minor': 3,
-        'patch': 0
-    }
 
     local_variables = {
         'serializer': "__version__ = \"{{major}}.{{minor}}\""
     }
 
-    file_config = fc.FileConfiguration(filepath, local_variables)
+    file_config = FileConfiguration(filepath, local_variables)
 
-    updater = fu.FileUpdater(file_config)
-    updater.update(current_version, new_version)
+    updater = FileUpdater(file_config)
+    updater(current_version, new_minor_version)
 
     with open(filepath, 'r') as f:
         new_file_content = f.read()
@@ -120,24 +118,14 @@ def test_file_updater_with_partial_serializer(
     assert new_file_content == "__version__ = \"1.3\""
 
 
-def test_file_updater_with_nonexisting_file(temp_empty_dir):
+def test_file_updater_with_nonexisting_file(temp_empty_dir, current_version,
+                                            new_minor_version):
     filepath = os.path.join(temp_empty_dir, "__init__.py")
     local_variables = {
         'serializer': "__version__ = \"{{major}}.{{minor}}\""
     }
 
-    file_config = fc.FileConfiguration(filepath, local_variables)
-
-    current_version = {
-        'major': 1,
-        'minor': 2,
-        'patch': 3
-    }
-    new_version = {
-        'major': 1,
-        'minor': 3,
-        'patch': 0
-    }
+    file_config = FileConfiguration(filepath, local_variables)
 
     if six.PY2:
         expected_exception = IOError
@@ -145,33 +133,23 @@ def test_file_updater_with_nonexisting_file(temp_empty_dir):
         expected_exception = FileNotFoundError
 
     with pytest.raises(expected_exception) as exc:
-        updater = fu.FileUpdater(file_config)
-        updater.update(current_version, new_version)
+        updater = FileUpdater(file_config)
+        updater(current_version, new_minor_version)
 
     assert str(exc.value) == "The file {} does not exist".format(
         file_config.path)
 
 
-def test_file_updater_preview(temp_empty_dir):
+def test_file_updater_preview(temp_empty_dir, current_version,
+                              new_minor_version):
     filepath = os.path.join(temp_empty_dir, "__init__.py")
     local_variables = {
         'serializer': "__version__ = \"{{major}}.{{minor}}\""
     }
 
-    file_config = fc.FileConfiguration(filepath, local_variables)
+    file_config = FileConfiguration(filepath, local_variables)
 
-    current_version = {
-        'major': 1,
-        'minor': 2,
-        'patch': 3
-    }
-    new_version = {
-        'major': 1,
-        'minor': 3,
-        'patch': 0
-    }
-
-    updater = fu.FileUpdater(file_config)
-    summary = updater.get_summary(current_version, new_version)
+    updater = FileUpdater(file_config)
+    summary = updater.get_summary(current_version, new_minor_version)
 
     assert summary == [("__version__ = \"1.2\"", "__version__ = \"1.3\"")]

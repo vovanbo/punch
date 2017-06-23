@@ -1,43 +1,42 @@
 # -*- coding: utf-8 -*-
-
 import sys
 from datetime import datetime
 
+CALVER_SYNTAX = {
+    'YYYY': {
+        'fmt': '%Y',
+        'strip': False
+    },
+    'YY': {
+        'fmt': '%y',
+        'strip': True
+    },
+    '0M': {
+        'fmt': '%m',
+        'strip': False
+    },
+    '0D': {
+        'fmt': '%d',
+        'strip': False
+    },
+    'MM': {
+        'fmt': '%m',
+        'strip': True
+    },
+    'DD': {
+        'fmt': '%d',
+        'strip': True
+    }
+}
 
-def _strftime(fmt):
+
+def format_current_time(fmt):
     return datetime.now().strftime(fmt)
 
 
 def strftime(fmt):
-    calver_syntax = {
-        'YYYY': {
-            'fmt': '%Y',
-            'strip': False
-        },
-        'YY': {
-            'fmt': '%y',
-            'strip': True
-        },
-        '0M': {
-            'fmt': '%m',
-            'strip': False
-        },
-        '0D': {
-            'fmt': '%d',
-            'strip': False
-        },
-        'MM': {
-            'fmt': '%m',
-            'strip': True
-        },
-        'DD': {
-            'fmt': '%d',
-            'strip': True
-        }
-    }
-
-    newfmt = calver_syntax.get(fmt, {'fmt': fmt, 'strip': False})
-    value = _strftime(newfmt['fmt'])
+    newfmt = CALVER_SYNTAX.get(fmt, {'fmt': fmt, 'strip': False})
+    value = format_current_time(newfmt['fmt'])
 
     if newfmt['strip']:
         return value.strip('0')
@@ -46,33 +45,25 @@ def strftime(fmt):
 
 
 class VersionPart(object):
-
     @classmethod
-    def from_dict(cls, dic):
+    def from_dict(cls, data):
         try:
-            part_type = dic.pop('type')
+            part_type = data.pop('type')
         except KeyError:
             part_type = 'integer'
 
         class_name = part_type.title().replace("_", "") + 'VersionPart'
         part_class = getattr(sys.modules[__name__], class_name)
 
-        return part_class(**dic)
+        return part_class(**data)
 
 
 class IntegerVersionPart(VersionPart):
-
     def __init__(self, name, value=None, start_value=None):
         self.name = name
-
-        if start_value is None:
-            self.start_value = 0
-        else:
-            self.start_value = start_value
-
-        if value is None:
-            self.value = self.start_value
-        else:
+        self.start_value = 0 if start_value is None else start_value
+        self.value = self.start_value
+        if value is not None:
             self.set(value)
 
     def inc(self):
@@ -89,14 +80,11 @@ class IntegerVersionPart(VersionPart):
 
 
 class ValueListVersionPart(VersionPart):
-
     def __init__(self, name, value, allowed_values):
         self.name = name
         self.allowed_values = allowed_values
-
-        if value is None:
-            self.value = allowed_values[0]
-        else:
+        self.value = allowed_values[0]
+        if value is not None:
             self.set(value)
 
         # When copying this does not take the object itself
@@ -105,10 +93,11 @@ class ValueListVersionPart(VersionPart):
     def set(self, value):
         if value not in self.allowed_values:
             raise ValueError(
-                "The given value {} is not allowed," +
-                " the list of possible values is {}",
+                "The given value {} is not allowed, "
+                "the list of possible values is {}",
                 value,
-                self.allowed_values)
+                self.allowed_values
+            )
         self.value = value
 
     def inc(self):
@@ -123,7 +112,6 @@ class ValueListVersionPart(VersionPart):
 
 
 class DateVersionPart(VersionPart):
-
     def __init__(self, name, value, fmt):
         self.name = name
         self.fmt = fmt

@@ -1,5 +1,5 @@
-from punch.vcs_use_cases import use_case
+from punch.vcs_use_cases.base import VCSUseCase
 
 
-class VCSTagUseCase(use_case.VCSUseCase):
+class VCSTagUseCase(VCSUseCase):
     pass

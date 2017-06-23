@@ -5,7 +5,6 @@ from punch.vcs_repositories.exceptions import RepositorySystemError
 
 
 class VCSRepo(object):
-
     def __init__(self, working_path, config_obj):
         self.working_path = working_path
         self.config_obj = config_obj
@@ -54,8 +53,8 @@ class VCSRepo(object):
             if error_message is not None:
                 raise RepositorySystemError(error_message.format(stderr))
             else:
-                error_text = "An error occurred executing" + \
-                    " '{}': {}\nProcess output was: {}"
+                error_text = "An error occurred executing " \
+                             "'{}': {}\nProcess output was: {}"
                 error_message = error_text.format(
                     " ".join(command_line),
                     stderr.decode('utf8'), stdout.decode('utf8')
@@ -65,13 +64,13 @@ class VCSRepo(object):
         return stdout.decode('utf8')
 
     def pre_start_release(self):
-        pass
+        raise NotImplementedError()
 
     def start_release(self):
-        pass
+        raise NotImplementedError()
 
     def finish_release(self):
-        pass
+        raise NotImplementedError()
 
     def post_finish_release(self):
-        pass
+        raise NotImplementedError()

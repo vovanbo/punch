@@ -1,11 +1,11 @@
 import mock
 
-from punch.vcs_use_cases import tag
+from punch.vcs_use_cases.tag import VCSTagUseCase
 
 
 def test_pre_tag():
     repo = mock.Mock()
-    use_case = tag.VCSTagUseCase(repo)
+    use_case = VCSTagUseCase(repo)
 
     use_case.tag("just_a_tag")
 

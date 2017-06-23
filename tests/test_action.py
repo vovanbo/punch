@@ -2,28 +2,28 @@
 
 import pytest
 
-from punch import version as ver
-from punch import version_part as vp
-from punch import action
+from punch.action import ConditionalResetAction
+from punch.version import Version
+from punch.version_part import DateVersionPart, IntegerVersionPart
 
 
 def test_conditional_reset_init_with_no_field():
     with pytest.raises(TypeError):
-        action.ConditionalResetAction()
+        ConditionalResetAction()
 
 
 def test_conditional_reset_init_field():
-    a = action.ConditionalResetAction('a')
+    a = ConditionalResetAction('a')
     assert a.field == 'a'
 
 
 def test_conditional_reset_init_field_explicit():
-    a = action.ConditionalResetAction(field='a')
+    a = ConditionalResetAction(field='a')
     assert a.field == 'a'
 
 
 def test_conditional_reset_init_accepts_update_fields():
-    a = action.ConditionalResetAction(
+    a = ConditionalResetAction(
         field='a', update_fields=['b', 'c'])
     assert a.field == 'a'
     assert a.update_fields == ['b', 'c']
@@ -31,15 +31,15 @@ def test_conditional_reset_init_accepts_update_fields():
 
 def test_conditional_reset_process_version_checks_all_update_fields(mocker):
     mocker.patch('punch.version_part.DateVersionPart.inc')
-    v = ver.Version()
-    part_year = vp.DateVersionPart('year', 2016, '%Y')
-    part_month = vp.DateVersionPart('month', 1, '%m')
-    part_build = vp.IntegerVersionPart('build')
+    v = Version()
+    part_year = DateVersionPart('year', 2016, '%Y')
+    part_month = DateVersionPart('month', 1, '%m')
+    part_build = IntegerVersionPart('build')
     v.add_part(part_year)
     v.add_part(part_month)
     v.add_part(part_build)
 
-    a = action.ConditionalResetAction(
+    a = ConditionalResetAction(
         field='build',
         update_fields=['year', 'month']
     )
@@ -52,15 +52,15 @@ def test_conditional_reset_process_version_checks_all_update_fields(mocker):
 
 def test_conditional_reset_process_version_calls_reset_on_field(mocker):
     mocker.patch('punch.version_part.IntegerVersionPart.reset')
-    v = ver.Version()
-    part_year = vp.DateVersionPart('year', 2016, '%Y')
-    part_month = vp.DateVersionPart('month', 1, '%m')
-    part_build = vp.IntegerVersionPart('build')
+    v = Version()
+    part_year = DateVersionPart('year', 2016, '%Y')
+    part_month = DateVersionPart('month', 1, '%m')
+    part_build = IntegerVersionPart('build')
     v.add_part(part_year)
     v.add_part(part_month)
     v.add_part(part_build)
 
-    a = action.ConditionalResetAction(
+    a = ConditionalResetAction(
         field='build',
         update_fields=['year', 'month']
     )
@@ -74,13 +74,13 @@ def test_conditional_reset_process_version_calls_increment_on_field(mocker):
     mocker.patch('punch.version_part.IntegerVersionPart.inc')
     strftime = mocker.patch('punch.version_part.strftime')
     strftime.return_value = 2016
-    v = ver.Version()
-    part_year = vp.DateVersionPart('year', 2016, '%Y')
-    part_build = vp.IntegerVersionPart('build')
+    v = Version()
+    part_year = DateVersionPart('year', 2016, '%Y')
+    part_build = IntegerVersionPart('build')
     v.add_part(part_year)
     v.add_part(part_build)
 
-    a = action.ConditionalResetAction(
+    a = ConditionalResetAction(
         field='build',
         update_fields=['year']
     )

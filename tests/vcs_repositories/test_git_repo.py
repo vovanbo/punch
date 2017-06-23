@@ -2,8 +2,11 @@ import subprocess
 
 import os
 import pytest
-from punch import vcs_configuration as vc
-from punch.vcs_repositories import git_repo as gr, exceptions as re
+from punch.vcs_configuration import VCSConfiguration
+
+from punch.vcs_repositories.exceptions import RepositorySystemError, \
+    RepositoryStatusError, RepositoryConfigurationError
+from punch.vcs_repositories.git_repo import GitRepo
 
 pytestmark = pytest.mark.slow
 
@@ -35,37 +38,36 @@ def temp_git_dir(temp_empty_git_dir, safe_devnull):
 
 @pytest.fixture
 def empty_vcs_configuration():
-    return vc.VCSConfiguration('git', {}, {},
-                               {'current_version': 'a', 'new_version': 'b'})
+    return VCSConfiguration('git', {}, {},
+                            {'current_version': 'a', 'new_version': 'b'})
 
 
 def test_get_current_branch(temp_git_dir, empty_vcs_configuration):
-    repo = gr.GitRepo(temp_git_dir, empty_vcs_configuration)
+    repo = GitRepo(temp_git_dir, empty_vcs_configuration)
     assert repo.get_current_branch() == 'master'
 
 
 def test_get_tags(temp_git_dir, empty_vcs_configuration):
-    repo = gr.GitRepo(temp_git_dir, empty_vcs_configuration)
+    repo = GitRepo(temp_git_dir, empty_vcs_configuration)
     assert repo.get_tags() == ''
 
 
 def test_init(temp_empty_git_dir, empty_vcs_configuration):
-    repo = gr.GitRepo(temp_empty_git_dir, empty_vcs_configuration)
+    repo = GitRepo(temp_empty_git_dir, empty_vcs_configuration)
 
     assert repo.working_path == temp_empty_git_dir
 
 
 def test_init_with_uninitialized_dir(temp_empty_dir, empty_vcs_configuration):
-    with pytest.raises(re.RepositorySystemError) as exc:
-        gr.GitRepo(temp_empty_dir, empty_vcs_configuration)
+    with pytest.raises(RepositorySystemError) as exc:
+        GitRepo(temp_empty_dir, empty_vcs_configuration)
 
-    assert str(exc.value) == \
-        "The current directory {} is not a Git repository".format(
-            temp_empty_dir)
+    assert str(exc.value) == "The current directory {} " \
+                             "is not a Git repository".format(temp_empty_dir)
 
 
 def test_pre_start_release(temp_git_dir, empty_vcs_configuration):
-    repo = gr.GitRepo(temp_git_dir, empty_vcs_configuration)
+    repo = GitRepo(temp_git_dir, empty_vcs_configuration)
     repo.pre_start_release()
 
     assert repo.get_current_branch() == 'master'
@@ -80,7 +82,7 @@ def test_pre_start_release_starting_from_different_branch(
         stderr=safe_devnull
     )
 
-    repo = gr.GitRepo(temp_git_dir, empty_vcs_configuration)
+    repo = GitRepo(temp_git_dir, empty_vcs_configuration)
     repo.pre_start_release()
 
     assert repo.get_current_branch() == 'master'
@@ -97,7 +99,7 @@ def test_pre_start_release_starting_from_different_branch_w_unstaged_changes(
     with open(os.path.join(temp_git_dir, "README.md"), "w") as f:
         f.writelines(["Unstaged lines"])
 
-    repo = gr.GitRepo(temp_git_dir, empty_vcs_configuration)
+    repo = GitRepo(temp_git_dir, empty_vcs_configuration)
     repo.pre_start_release()
 
     assert repo.get_current_branch() == 'master'
@@ -120,20 +122,20 @@ def test_pre_start_release_starting_from_different_branch_w_uncom_changes(
         stderr=safe_devnull
     )
 
-    repo = gr.GitRepo(temp_git_dir, empty_vcs_configuration)
-    with pytest.raises(re.RepositoryStatusError):
+    repo = GitRepo(temp_git_dir, empty_vcs_configuration)
+    with pytest.raises(RepositoryStatusError):
         repo.pre_start_release()
 
 
 def test_start_release(temp_git_dir, empty_vcs_configuration):
-    repo = gr.GitRepo(temp_git_dir, empty_vcs_configuration)
+    repo = GitRepo(temp_git_dir, empty_vcs_configuration)
     repo.pre_start_release()
     repo.start_release()
     assert repo.get_current_branch() == "b"
 
 
 def test_finish_release_without_changes(temp_git_dir, empty_vcs_configuration):
-    repo = gr.GitRepo(temp_git_dir, empty_vcs_configuration)
+    repo = GitRepo(temp_git_dir, empty_vcs_configuration)
     repo.pre_start_release()
     repo.start_release()
     assert 'b' in repo.get_branches()
@@ -147,13 +149,13 @@ def test_finish_release_without_changes(temp_git_dir, empty_vcs_configuration):
 def test_finish_release_with_message(temp_git_dir):
     release_name = "1.0"
     commit_message = "A commit message"
-    config = vc.VCSConfiguration(
+    config = VCSConfiguration(
         'git', {}, global_variables={},
         special_variables={'new_version': release_name},
         commit_message=commit_message
     )
 
-    repo = gr.GitRepo(temp_git_dir, config)
+    repo = GitRepo(temp_git_dir, config)
     repo.pre_start_release()
     repo.start_release()
     assert release_name in repo.get_branches()
@@ -175,13 +177,13 @@ def test_finish_release_with_message(temp_git_dir):
 def test_release_without_release_branch(temp_git_dir):
     release_name = "1.0"
     commit_message = "A commit message"
-    config = vc.VCSConfiguration(
+    config = VCSConfiguration(
         'git', {'make_release_branch': False}, global_variables={},
         special_variables={'new_version': release_name},
         commit_message=commit_message
     )
 
-    repo = gr.GitRepo(temp_git_dir, config)
+    repo = GitRepo(temp_git_dir, config)
     repo.pre_start_release()
     repo.start_release()
     assert release_name not in repo.get_branches()
@@ -203,13 +205,13 @@ def test_release_without_release_branch(temp_git_dir):
 def test_release_with_explicit_release_branch(temp_git_dir):
     release_name = "1.0"
     commit_message = "A commit message"
-    config = vc.VCSConfiguration(
+    config = VCSConfiguration(
         'git', {'make_release_branch': True}, global_variables={},
         special_variables={'new_version': release_name},
         commit_message=commit_message
     )
 
-    repo = gr.GitRepo(temp_git_dir, config)
+    repo = GitRepo(temp_git_dir, config)
     repo.pre_start_release()
     repo.start_release()
     assert release_name in repo.get_branches()
@@ -233,13 +235,13 @@ def test_finish_release_with_custom_tag(temp_git_dir):
     commit_message = "A commit message"
     tag = "Version_{}".format(release_name)
 
-    config = vc.VCSConfiguration(
+    config = VCSConfiguration(
         'git', {'tag': tag}, global_variables={},
         special_variables={'new_version': release_name},
         commit_message=commit_message
     )
 
-    repo = gr.GitRepo(temp_git_dir, config)
+    repo = GitRepo(temp_git_dir, config)
     repo.pre_start_release()
     repo.start_release()
 
@@ -256,14 +258,14 @@ def test_finish_release_custom_tag_cannot_contain_spaces(temp_git_dir):
     commit_message = "A commit message"
     tag = "Version {}".format(release_name)
 
-    config = vc.VCSConfiguration(
+    config = VCSConfiguration(
         'git', {'tag': tag}, global_variables={},
         special_variables={'new_version': release_name},
         commit_message=commit_message
     )
 
-    with pytest.raises(re.RepositoryConfigurationError):
-        gr.GitRepo(temp_git_dir, config)
+    with pytest.raises(RepositoryConfigurationError):
+        GitRepo(temp_git_dir, config)
 
 
 def test_finish_release_with_annotated_tag(temp_git_dir):
@@ -271,7 +273,7 @@ def test_finish_release_with_annotated_tag(temp_git_dir):
     commit_message = "A commit message"
     annotation_message = "An annotation message"
 
-    config = vc.VCSConfiguration(
+    config = VCSConfiguration(
         'git',
         {'annotate_tags': True,
          'annotation_message': annotation_message},
@@ -280,7 +282,7 @@ def test_finish_release_with_annotated_tag(temp_git_dir):
         commit_message=commit_message
     )
 
-    repo = gr.GitRepo(temp_git_dir, config)
+    repo = GitRepo(temp_git_dir, config)
     repo.pre_start_release()
     repo.start_release()
 
@@ -308,7 +310,7 @@ def test_finish_release_with_annotated_tag(temp_git_dir):
 
 
 def test_tag(temp_git_dir, empty_vcs_configuration):
-    repo = gr.GitRepo(temp_git_dir, empty_vcs_configuration)
+    repo = GitRepo(temp_git_dir, empty_vcs_configuration)
 
     repo.tag("just_a_tag")
 

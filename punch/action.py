@@ -15,17 +15,17 @@ class Action(object):
 
 class ConditionalResetAction:
 
-    def __init__(self, field, update_fields=None, **kwds):
+    def __init__(self, field, update_fields=None):
         self.field = field
         self.update_fields = update_fields
 
     def process_version(self, version):
         new_version = version.copy()
 
-        reset_part = new_version.get_part(self.field)
+        reset_part = new_version[self.field]
 
         for f in self.update_fields:
-            update_part = new_version.get_part(f)
+            update_part = new_version[f]
             update_part.inc()
 
         if new_version == version:

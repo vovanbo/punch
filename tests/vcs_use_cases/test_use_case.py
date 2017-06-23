@@ -1,10 +1,11 @@
 import mock
-from punch.vcs_use_cases import use_case
+
+from punch.vcs_use_cases.base import VCSUseCase
 
 
 def test_delegate_all():
     repo = mock.Mock()
-    uc = use_case.VCSUseCase(repo)
+    uc = VCSUseCase(repo)
 
     uc.some_function("unnamed_parameter", named_parameter="named_parameter")
 
@@ -17,7 +18,7 @@ def test_delegate_all():
 def test_delegate_override():
     repo = mock.Mock()
 
-    class MyVCSUseCase(use_case.VCSUseCase):
+    class MyVCSUseCase(VCSUseCase):
 
         def some_function(self, *args, **kwds):
             pass

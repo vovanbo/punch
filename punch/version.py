@@ -1,78 +1,66 @@
 # -*- coding: utf-8 -*-
 
 import collections
-from punch import version_part as vpart
+import operator
+from collections import OrderedDict
+
+from punch.version_part import VersionPart, IntegerVersionPart
 from punch.helpers import import_file
 
 
-class Version():
-
-    def __init__(self):
-        self.parts = collections.OrderedDict()
-
-    @property
-    def keys(self):
-        return list(self.parts.keys())
-
-    @property
-    def values(self):
-        return list(self.parts.values())
-
+class Version(OrderedDict):
     def __eq__(self, other):
-        return self.as_dict() == other.as_dict()
+        if isinstance(other, Version):
+            return tuple(self.simplify()) == tuple(other.simplify())
+        return super(Version, self).__eq__(other)
 
     def add_part(self, part):
-        self.keys.append(part.name)
-        self.parts[part.name] = part
+        self[part.name] = part
 
     def create_part(self, name, value,
-                    cls=vpart.IntegerVersionPart, *args, **kwds):
-        self.keys.append(name)
-        self.parts[name] = cls(name, value, *args, **kwds)
+                    cls=IntegerVersionPart, *args, **kwds):
+        self[name] = cls(name, value, *args, **kwds)
 
     def add_part_from_dict(self, dic):
-        vp = vpart.VersionPart.from_dict(dic)
-        self.keys.append(vp.name)
-        self.parts[vp.name] = vp
+        vp = VersionPart.from_dict(dic)
+        self[vp.name] = vp
 
     def get_part(self, name):
-        return self.parts[name]
+        return self[name]
 
     def _reset_following_parts(self, name):
-        idx = self.keys.index(name)
-        reset_keys = self.keys[idx + 1:]
-        for key in reset_keys:
-            self.parts[key].reset()
+        reset = False
+        for part_name in self.keys():
+            if reset:
+                self[part_name].reset()
+            elif part_name == name:
+                reset = True
+        # idx = operator.indexOf(self.keys(), name)
+        # reset_keys = self.keys()[idx + 1:]
+        # for key in reset_keys:
+        #     self[key].reset()
 
     def inc(self, name):
-        self.parts[name].inc()
+        self[name].inc()
         self._reset_following_parts(name)
 
     def set(self, adict):
         for key, value in adict.items():
-            self.parts[key].set(value)
+            self[key].set(value)
 
     def set_and_reset(self, name, value):
-        self.parts[name].set(value)
+        self[name].set(value)
         self._reset_following_parts(name)
 
     def copy(self):
         new = Version()
-        for value in self.parts.values():
+        for value in self.values():
             new.add_part(value.copy())
-
         return new
 
-    def as_dict(self):
-        return dict((key, part.value) for key, part in self.parts.items())
-
-    def as_list(self):
-        return list((key, part.value) for key, part in self.parts.items())
-
-    def to_file(self, version_filepath):
-        with open(version_filepath, 'w') as f:
-            for key, part in self.parts.items():
-                f.write("{0} = {1}\n".format(key, part.value))
+    def simplify(self):
+        for name, part in self.items():
+            yield name, part.value
 
     @classmethod
     def from_file(cls, version_filepath, version_description):
