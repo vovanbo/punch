@@ -1,3 +1,4 @@
+import json
 import subprocess
 import pytest
 
@@ -9,43 +10,37 @@ system_year = system_year.decode('utf8').replace('\n', '')
 system_month = subprocess.check_output(['date', '+%m'])
 system_month = system_month.decode('utf8').replace('\n', '')
 
-version_file_content = """
-year = '{}'
-month = '{}'
-build = 0
-""".format(system_year, system_month)
 
-config_file_content = """
-__config_version__ = 1
-
-GLOBALS = {
-    'serializer': '{{year}}.{{month}}.{{build}}',
-}
-
-FILES = ["README.md"]
-
-ACTIONS = {
-    'mbuild': {
-        'type': 'conditional_reset',
-        'field': 'build',
-        'update_fields': ['year', 'month']
+config_file_content = json.dumps({
+    'format': 1,
+    'globals': {
+        'serializer': '{{year}}.{{month}}.{{build}}',
+    },
+    'files': ['README.md'],
+    'actions': {
+        'mbuild': {
+            'type': 'conditional_reset',
+            'field': 'build',
+            'update_fields': ['year', 'month']
+        }
+    },
+    'version': {
+        'variables': [
+            {
+                'name': 'year',
+                'type': 'date',
+                'fmt': '%Y'
+            },
+            {
+                'name': 'month',
+                'type': 'date',
+                'fmt': '%m'
+            },
+            'build'
+        ],
+        'values': [system_year, system_month, '0']
     }
-}
-
-VERSION = [
-    {
-        'name': 'year',
-        'type': 'date',
-        'fmt': '%Y'
-    },
-    {
-        'name': 'month',
-        'type': 'date',
-        'fmt': '%m'
-    },
-    'build'
-]
-"""
+})
 
 
 def test_action_refresh(script_runner, test_environment):
@@ -53,13 +48,7 @@ def test_action_refresh(script_runner, test_environment):
         "README.md",
         "Version {}.{}.0.".format(system_year, system_month)
     )
-
-    test_environment.ensure_file_is_present("punch_version.py",
-                                            version_file_content)
-
-    test_environment.ensure_file_is_present("punch_config.py",
-                                            config_file_content)
-
+    test_environment.ensure_file_is_present("punch.json", config_file_content)
     ret = test_environment.call(['punch', '--action', 'mbuild'])
 
     assert not ret.stderr

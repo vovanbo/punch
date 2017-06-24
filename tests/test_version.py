@@ -18,32 +18,32 @@ def clean_previous_imports():
 @pytest.fixture
 def version_mmp():
     v = Version()
-    v.create_part('major', 4)
-    v.create_part('minor', 3)
-    v.create_part('patch', 1)
+    v.create_part('major', value=4)
+    v.create_part('minor', value=3)
+    v.create_part('patch', value=1)
     return v
 
 
 @pytest.fixture
 def version_mmpb():
     v = Version()
-    v.create_part('major', 4)
-    v.create_part('minor', 3)
-    v.create_part('patch', 1)
-    v.create_part('build', 5, start_value=1)
+    v.create_part('major', value=4)
+    v.create_part('minor', value=3)
+    v.create_part('patch', value=1)
+    v.create_part('build', start_value=1, value=5)
     return v
 
 
 def test_version_default_part_is_integer():
     v = Version()
-    v.create_part('major', 4)
+    v.create_part('major', value=4)
     assert isinstance(v.get_part('major'), IntegerVersionPart)
 
 
 def test_version_add_parts():
     v = Version()
-    part_major = IntegerVersionPart('major', 4)
-    part_minor = IntegerVersionPart('minor', 3)
+    part_major = IntegerVersionPart(name='major', value=4)
+    part_minor = IntegerVersionPart(name='minor', value=3)
     v.add_part(part_major)
     v.add_part(part_minor)
 
@@ -54,10 +54,11 @@ def test_version_add_parts():
 
 def test_version_may_specify_part_class():
     v = Version()
-    v.create_part('major', 4, ValueListVersionPart, [0, 2, 4, 6, 8])
+    v.create_part(name='major', cls=ValueListVersionPart,
+                  allowed_values=[0, 2, 4, 6, 8], value=4)
     assert isinstance(v.get_part('major'), ValueListVersionPart)
-    assert v.get_part('major').value == 4
-    assert v.get_part('major').values == [0, 2, 4, 6, 8]
+    assert v.get_part('major').value == '4'
+    assert v.get_part('major').values == ['0', '2', '4', '6', '8']
 
 
 def test_version_can_add_parts(version_mmp):
@@ -127,9 +128,9 @@ def test_version_increment_part_with_custom_start_value(version_mmpb):
 def test_version_copy(version_mmp):
     new_version = version_mmp.copy()
     new_version.inc('major')
-    assert new_version.get_part('major').value == 5
-    assert new_version.get_part('minor').value == 0
-    assert new_version.get_part('patch').value == 0
+    assert new_version['major'].value == 5
+    assert new_version['minor'].value == 0
+    assert new_version['patch'].value == 0
 
 
 def test_version_compare_equal(version_mmp):

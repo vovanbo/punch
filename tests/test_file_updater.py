@@ -13,27 +13,27 @@ from punch.version_part import IntegerVersionPart
 @pytest.fixture
 def current_version():
     v = Version()
-    v.add_part(IntegerVersionPart('major', 1))
-    v.add_part(IntegerVersionPart('minor', 2))
-    v.add_part(IntegerVersionPart('patch', 3))
+    v.add_part(IntegerVersionPart(name='major', value=1))
+    v.add_part(IntegerVersionPart(name='minor', value=2))
+    v.add_part(IntegerVersionPart(name='patch', value=3))
     return v
 
 
 @pytest.fixture
 def new_patch_version():
     v = Version()
-    v.add_part(IntegerVersionPart('major', 1))
-    v.add_part(IntegerVersionPart('minor', 2))
-    v.add_part(IntegerVersionPart('patch', 4))
+    v.add_part(IntegerVersionPart(name='major', value=1))
+    v.add_part(IntegerVersionPart(name='minor', value=2))
+    v.add_part(IntegerVersionPart(name='patch', value=4))
     return v
 
 
 @pytest.fixture
 def new_minor_version():
     v = Version()
-    v.add_part(IntegerVersionPart('major', 1))
-    v.add_part(IntegerVersionPart('minor', 3))
-    v.add_part(IntegerVersionPart('patch', 0))
+    v.add_part(IntegerVersionPart(name='major', value=1))
+    v.add_part(IntegerVersionPart(name='minor', value=3))
+    v.add_part(IntegerVersionPart(name='patch', value=0))
     return v
 
 

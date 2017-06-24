@@ -53,8 +53,8 @@ def test_conditional_reset_process_version_checks_all_update_fields(mocker):
 def test_conditional_reset_process_version_calls_reset_on_field(mocker):
     mocker.patch('punch.version_part.IntegerVersionPart.reset')
     v = Version()
-    part_year = DateVersionPart('year', 2016, '%Y')
-    part_month = DateVersionPart('month', 1, '%m')
+    part_year = DateVersionPart('year', fmt='%Y', value=2016)
+    part_month = DateVersionPart('month', fmt='%m', value=1)
     part_build = IntegerVersionPart('build')
     v.add_part(part_year)
     v.add_part(part_month)
@@ -75,7 +75,7 @@ def test_conditional_reset_process_version_calls_increment_on_field(mocker):
     strftime = mocker.patch('punch.version_part.strftime')
     strftime.return_value = 2016
     v = Version()
-    part_year = DateVersionPart('year', 2016, '%Y')
+    part_year = DateVersionPart('year', fmt='%Y', value=2016)
     part_build = IntegerVersionPart('build')
     v.add_part(part_year)
     v.add_part(part_build)
