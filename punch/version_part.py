@@ -59,15 +59,15 @@ class VersionPart(object):
 
 
 class IntegerVersionPart(VersionPart):
-    def __init__(self, name, value=None, start_value=None):
+    def __init__(self, name, start_value=None, value=None, **kwargs):
         self.name = name
-        self.start_value = 0 if start_value is None else start_value
+        self.start_value = 0 if start_value is None else int(start_value)
         self.value = self.start_value
         if value is not None:
             self.set(value)
 
     def inc(self):
-        self.value = self.value + 1
+        self.value += 1
 
     def set(self, value):
         self.value = int(value)
@@ -76,29 +76,30 @@ class IntegerVersionPart(VersionPart):
         self.value = self.start_value
 
     def copy(self):
-        return IntegerVersionPart(self.name, self.value, self.start_value)
+        return IntegerVersionPart(self.name, start_value=self.start_value,
+                                  value=self.value)
 
 
 class ValueListVersionPart(VersionPart):
-    def __init__(self, name, value, allowed_values):
+    def __init__(self, name, allowed_values, value=None, **kwargs):
         self.name = name
-        self.allowed_values = allowed_values
-        self.value = allowed_values[0]
+        self.allowed_values = [str(v) for v in allowed_values]
+        self.value = self.allowed_values[0]
         if value is not None:
             self.set(value)
 
         # When copying this does not take the object itself
-        self.values = [v for v in allowed_values]
+        self.values = [v for v in self.allowed_values]
 
     def set(self, value):
-        if value not in self.allowed_values:
+        if str(value) not in self.allowed_values:
             raise ValueError(
                 "The given value {} is not allowed, "
                 "the list of possible values is {}",
                 value,
                 self.allowed_values
             )
-        self.value = value
+        self.value = str(value)
 
     def inc(self):
         idx = self.values.index(self.value)
@@ -108,24 +109,25 @@ class ValueListVersionPart(VersionPart):
         self.value = self.values[0]
 
     def copy(self):
-        return ValueListVersionPart(self.name, self.value, self.values)
+        return ValueListVersionPart(self.name, allowed_values=self.values,
+                                    value=self.value)
 
 
 class DateVersionPart(VersionPart):
-    def __init__(self, name, value, fmt):
+    def __init__(self, name, fmt, value=None, **kwargs):
         self.name = name
         self.fmt = fmt
 
         if value is None:
-            self.value = strftime(fmt)
+            self.value = str(strftime(fmt))
         else:
-            self.value = value
+            self.value = str(value)
 
     def reset(self):
-        self.value = strftime(self.fmt)
+        self.value = str(strftime(self.fmt))
 
     def inc(self):
         self.reset()
 
     def copy(self):
-        return DateVersionPart(self.name, self.value, self.fmt)
+        return DateVersionPart(self.name, fmt=self.fmt, value=self.value)
