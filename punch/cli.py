@@ -4,7 +4,7 @@ import argparse
 import json
 import os
 import sys
-
+from datetime import datetime
 
 import punch
 from punch.action import Action
@@ -80,7 +80,8 @@ def main(original_args=None):
 
     if args.version is True:
         print("Punch version {}".format(punch.__version__))
-        print("Copyright (C) 2016 Leonardo Giordani")
+        print("Copyright (C) 2016-{} "
+              "Leonardo Giordani".format(datetime.now().strftime('%Y')))
         print("This is free software, see the LICENSE file.")
         print("Source: https://github.com/lgiordani/punch")
         print("Documentation: http://punch.readthedocs.io/en/latest/")
