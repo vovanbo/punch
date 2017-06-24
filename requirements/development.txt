@@ -1,5 +1,5 @@
 -r production.txt
+-e .
 
 wheel
 mkdocs
-punch.py

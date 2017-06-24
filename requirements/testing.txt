@@ -5,3 +5,4 @@ tox
 mock
 pytest-console-scripts
 pytest-mock
+tox-pyenv
