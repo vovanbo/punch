@@ -44,7 +44,7 @@ def show_version_updates(version_changes):
         print("  * {} -> {}".format(current, new))
 
 
-def main(original_args=None):
+def main():
     parser = argparse.ArgumentParser(
         description="Manages file content with versions."
     )
@@ -68,8 +68,8 @@ def main(original_args=None):
         '-s',
         '--simulate',
         action='store_true',
-        help="Simulates the version increment and "
-             "prints a summary of the relevant data"
+        help="Simulates the version increment and prints a summary "
+             "of the relevant data"
     )
 
     args = parser.parse_args()
