@@ -211,15 +211,8 @@ def main(original_args=None):
             updater = FileUpdater(file_configuration)
             updater(config.version, new_version)
 
-        with open(args.version_file, 'w') as f:
-            if args.verbose:
-                print("* Updating version file")
-
-            for i in new_version.keys:
-                f.write('{name} = {value}\n'.format(
-                    name=new_version.parts[i].name,
-                    value=new_version.parts[i].value
-                ))
+        config.dump(version=new_version, target=args.config_file,
+                    verbose=args.verbose)
 
         if vcs_configuration is not None:
             uc.finish_release()

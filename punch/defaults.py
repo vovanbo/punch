@@ -11,7 +11,7 @@ DEFAULT_CONFIG = OrderedDict({
     'files': [],
     'version': {
         'variables': ['major', 'minor', 'patch'],
-        'current': ['0', '1', '0']
+        'values': ['0', '1', '0']
     },
     'vcs': {
         'name': 'git',

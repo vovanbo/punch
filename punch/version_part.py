@@ -46,16 +46,11 @@ def strftime(fmt):
 
 class VersionPart(object):
     @classmethod
-    def from_dict(cls, data):
-        try:
-            part_type = data.pop('type')
-        except KeyError:
-            part_type = 'integer'
-
+    def factory(cls, **kwargs):
+        part_type = kwargs.pop('type', 'integer')
         class_name = part_type.title().replace("_", "") + 'VersionPart'
         part_class = getattr(sys.modules[__name__], class_name)
-
-        return part_class(**data)
+        return part_class(**kwargs)
 
 
 class IntegerVersionPart(VersionPart):

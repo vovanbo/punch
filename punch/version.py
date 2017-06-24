@@ -17,13 +17,8 @@ class Version(OrderedDict):
     def add_part(self, part):
         self[part.name] = part
 
-    def create_part(self, name, value,
-                    cls=IntegerVersionPart, *args, **kwds):
-        self[name] = cls(name, value, *args, **kwds)
-
-    def add_part_from_dict(self, dic):
-        vp = VersionPart.from_dict(dic)
-        self[vp.name] = vp
+    def create_part(self, name, cls=IntegerVersionPart, **kwargs):
+        self[name] = cls(name, **kwargs)
 
     def get_part(self, name):
         return self[name]
@@ -61,33 +56,3 @@ class Version(OrderedDict):
     def simplify(self):
         for name, part in self.items():
             yield name, part.value
-
-    @classmethod
-    def from_file(cls, version_filepath, version_description):
-        version_module = import_file(version_filepath)
-        version = Version()
-
-        for version_part in version_description:
-            if isinstance(version_part, collections.Mapping):
-                version_part_name = version_part['name']
-                version_part['value'] = cls._get_version_part(
-                    version_module, version_part, version_part_name)
-                version.add_part_from_dict(version_part)
-            else:
-                version_part_name = version_part
-                version_part_value = cls._get_version_part(
-                    version_module, version_part, version_part_name)
-                version.create_part(version_part_name, version_part_value)
-
-        return version
-
-    @classmethod
-    def _get_version_part(cls, version_module,
-                          version_part, version_part_name):
-        try:
-            return getattr(version_module, version_part_name)
-        except AttributeError:
-            raise ValueError(
-                "Given version file is invalid:" +
-                " missing '{}' variable".format(version_part_name)
-            )

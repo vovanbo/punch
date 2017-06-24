@@ -1,5 +1,6 @@
 import collections
 import json
+from copy import copy
 
 import six
 
@@ -15,25 +16,28 @@ class ConfigurationVersionError(Exception):
 
 
 class PunchConfig(object):
-    def __init__(self, config_filepath):
-        configuration = json.load(config_filepath)
+    def __init__(self, source):
+        with open(source) as f:
+            self._configuration = json.load(f)
 
-        assert 'format' in configuration, \
+        self._source = source
+
+        assert 'format' in self._configuration, \
             "Given config file is invalid: missing 'format' variable"
 
-        self.__config_version__ = configuration['format']
-        if self.__config_version__ > 1:
+        self.format = self._configuration['format']
+        if self.format > 1:
             raise ConfigurationVersionError(
                 "Unsupported configuration file version "
-                "{}".format(self.__config_version__)
+                "{}".format(self.format)
             )
 
-        self.globals = configuration.get('globals', {})
+        self.globals = self._configuration.get('globals', {})
 
-        assert 'files' in configuration, \
+        assert 'files' in self._configuration, \
             "Given config file is invalid: missing 'files' attribute"
 
-        files = configuration['files']
+        files = self._configuration['files']
         self.files = []
         for file_configuration in files:
             if isinstance(file_configuration, collections.Mapping):
@@ -46,26 +50,40 @@ class PunchConfig(object):
                     FileConfiguration(file_configuration, {}, self.globals)
                 )
 
-        assert 'version' in configuration, \
+        assert 'version' in self._configuration, \
             "Given config file is invalid: missing 'version' attribute"
-        assert 'variables' in configuration['version'], \
+        assert 'variables' in self._configuration['version'], \
             "Variables is required in version configuration."
-        assert 'current' in configuration['version'], \
+        assert 'values' in self._configuration['version'], \
             "Current version is not found in configuration."
 
         self.version = Version()
-        for variable, value in zip(configuration['version']['variables'],
-                                   configuration['version']['current']):
+        self._variables = self._configuration['version']['variables']
+        self._values = self._configuration['version']['values']
+        for variable, value in zip(self._variables, self._values):
             if isinstance(variable, six.string_types):
                 self.version.add_part(IntegerVersionPart(name=variable,
                                                          value=value))
             elif isinstance(variable, collections.MutableMapping):
-                part = VersionPart.from_dict(variable)
-                part.set(value)
+                part = VersionPart.factory(value=value, **variable)
                 self.version.add_part(part)
 
-        self.vcs = configuration.get('vcs')
+        self.vcs = self._configuration.get('vcs')
         if self.vcs is not None and 'name' not in self.vcs:
             raise ValueError("Missing key 'name' in VCS configuration")
 
-        self.actions = configuration.get('actions', {})
+        self.actions = self._configuration.get('actions', {})
+
+    def dump(self, version=None, target=None, verbose=False):
+        assert isinstance(version, Version), 'Version instance is required.'
+
+        target = self._source if target is None else target
+
+        new_configuration = copy(self._configuration)
+        new_configuration['version']['current'] = \
+            [str(p.value) for p in version.values()]
+
+        with open(target, 'w') as f:
+            if verbose:
+                print("* Updating punch file")
+            json.dump(new_configuration, f)
