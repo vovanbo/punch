@@ -1,11 +1,7 @@
 # -*- coding: utf-8 -*-
-
-import collections
-import operator
 from collections import OrderedDict
 
-from punch.version_part import VersionPart, IntegerVersionPart
-from punch.helpers import import_file
+from punch.version_part import IntegerVersionPart
 
 
 class Version(OrderedDict):
@@ -30,10 +26,6 @@ class Version(OrderedDict):
                 self[part_name].reset()
             elif part_name == name:
                 reset = True
-        # idx = operator.indexOf(self.keys(), name)
-        # reset_keys = self.keys()[idx + 1:]
-        # for key in reset_keys:
-        #     self[key].reset()
 
     def inc(self, name):
         self[name].inc()

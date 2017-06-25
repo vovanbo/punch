@@ -3,10 +3,9 @@ import six
 import pytest
 import io
 
-from punch.version_part import VersionPart, IntegerVersionPart
-
 from punch.replacer import Replacer
 from punch.version import Version
+from punch.version_part import IntegerVersionPart
 
 
 @pytest.fixture

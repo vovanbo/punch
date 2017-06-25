@@ -32,14 +32,15 @@ def special_variables():
     }
 
 
-def test_vcs_configuration_from_string(
-        vcs_configuration_dict, global_variables, special_variables):
-    vcsconf = VCSConfiguration(vcs_configuration_dict['name'],
-                                  vcs_configuration_dict['options'],
-                                  global_variables,
-                                  special_variables,
-                                  vcs_configuration_dict['commit_message']
-                                  )
+def test_vcs_configuration_from_string(vcs_configuration_dict,
+                                       global_variables, special_variables):
+    vcsconf = VCSConfiguration(
+        vcs_configuration_dict['name'],
+        vcs_configuration_dict['options'],
+        global_variables,
+        special_variables,
+        vcs_configuration_dict['commit_message']
+    )
 
     expected_options = {
         'make_release_branch': False,

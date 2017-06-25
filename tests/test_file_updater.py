@@ -46,7 +46,7 @@ def temp_dir_with_version_file(temp_empty_dir):
 
 
 @pytest.fixture
-def temp_dir_with_unicode_version_file(temp_empty_dir):
+def temp_dir_with_unicode_file(temp_empty_dir):
     with open(os.path.join(temp_empty_dir, "__init__.py"), 'w') as f:
         f.write("__version⚠__ = \"1.2.3\"")
 
@@ -80,9 +80,10 @@ def test_file_updater(temp_dir_with_version_file, current_version,
     assert new_file_content == "__version__ = \"1.2.4\""
 
 
-def test_file_updater_with_unicode_characters(
-        temp_dir_with_unicode_version_file, current_version, new_patch_version):
-    filepath = os.path.join(temp_dir_with_unicode_version_file, "__init__.py")
+def test_file_updater_with_unicode_characters(temp_dir_with_unicode_file,
+                                              current_version,
+                                              new_patch_version):
+    filepath = os.path.join(temp_dir_with_unicode_file, "__init__.py")
 
     local_variables = {
         'serializer': "__version⚠__ = \"{{major}}.{{minor}}.{{patch}}\""
@@ -100,7 +101,8 @@ def test_file_updater_with_unicode_characters(
 
 
 def test_file_updater_with_partial_serializer(
-        temp_dir_with_version_file_partial, current_version, new_minor_version):
+        temp_dir_with_version_file_partial,
+        current_version, new_minor_version):
     filepath = os.path.join(temp_dir_with_version_file_partial, "__init__.py")
 
     local_variables = {

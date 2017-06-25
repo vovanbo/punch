@@ -87,9 +87,8 @@ def test_init_with_uninitialized_dir(temp_empty_dir, empty_vcs_configuration):
     with pytest.raises(RepositorySystemError) as exc:
         GitFlowRepo(temp_empty_dir, empty_vcs_configuration)
 
-    assert str(exc.value) == \
-           "The current directory {} is not a Git repository".format(
-               temp_empty_dir)
+    assert str(exc.value) == "The current directory {} " \
+                             "is not a Git repository".format(temp_empty_dir)
 
 
 def test_pre_start_release(temp_gitflow_dir, empty_vcs_configuration):

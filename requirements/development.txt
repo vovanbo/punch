@@ -1,5 +1,6 @@
 -r production.txt
 -e .
 
+flake8
 wheel
 mkdocs

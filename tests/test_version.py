@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-
-import os
 import pytest
 
 from punch.version import Version
