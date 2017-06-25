@@ -80,6 +80,8 @@ class PunchConfig(object):
         self.actions = {k: Action.factory(**v) for k, v in actions.items()}
 
     def dump(self, version=None, target=None, verbose=False):
+        if version is None:
+            version = self.version
         assert isinstance(version, Version), 'Version instance is required.'
 
         target = self._source if target is None else target
@@ -90,5 +92,5 @@ class PunchConfig(object):
 
         with open(target, 'w') as f:
             if verbose:
-                print("* Updating punch file")
+                print("* Updating punch file {}".format(target))
             json.dump(new_configuration, f)
