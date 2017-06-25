@@ -1,17 +1,15 @@
-import subprocess
-
 import os
-import pytest
-
+import subprocess
 import sys
 
+import pytest
 from six.moves import configparser
 
-from punch.vcs_configuration import VCSConfiguration
-from punch.vcs_repositories.exceptions import (
+from punch.vcs.configuration import VCSConfiguration
+from punch.vcs.exceptions import (
     RepositorySystemError, RepositoryStatusError, RepositoryConfigurationError
 )
-from punch.vcs_repositories.hg_repo import HgRepo
+from punch.vcs.repositories import HgRepo
 from tests.conftest import safe_devnull
 
 pytestmark = pytest.mark.slow

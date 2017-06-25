@@ -11,12 +11,10 @@ from punch.config import PunchConfig
 from punch.defaults import DEFAULT_CONFIG, DEFAULT_CONFIG_FILE
 from punch.file_updater import FileUpdater
 from punch.replacer import Replacer
-from punch.vcs_configuration import VCSConfiguration
-from punch.vcs_repositories.exceptions import RepositorySystemError
-from punch.vcs_repositories.git_flow_repo import GitFlowRepo
-from punch.vcs_repositories.git_repo import GitRepo
-from punch.vcs_repositories.hg_repo import HgRepo
-from punch.vcs_use_cases.release import VCSReleaseUseCase
+from punch.vcs.configuration import VCSConfiguration
+from punch.vcs.exceptions import RepositorySystemError
+from punch.vcs.repositories import GitRepo, GitFlowRepo, HgRepo
+from punch.vcs.use_cases import VCSReleaseUseCase
 
 VCS_REPO_MAP = {
     'git': GitRepo,
@@ -33,9 +31,8 @@ def fatal_error(message, exception=None):
     sys.exit(1)
 
 
-def show_version_parts(values):
-    for p in values:
-        print("{}={}".format(p.name, p.value))
+def show_version_parts(version):
+    print(json.dumps(dict(version.simplify())))
 
 
 def show_version_updates(version_changes):
@@ -153,10 +150,10 @@ def main():
 
     if args.simulate:
         print("* Current version")
-        show_version_parts(config.version.values)
+        show_version_parts(config.version)
 
         print("\n* New version")
-        show_version_parts(new_version.values)
+        show_version_parts(new_version)
 
         changes = global_replacer.run_all_serializers(config.version,
                                                       new_version)
@@ -164,17 +161,18 @@ def main():
         print("\n* Global version updates")
         show_version_updates(changes)
 
-        print("\nConfigured files")
-        for file_configuration in config.files:
-            updater = FileUpdater(file_configuration)
-            print("* {}: ".format(file_configuration.path))
-            changes = updater.get_summary(config.version, new_version)
-            show_version_updates(changes)
+        if config.files:
+            print("\nConfigured files")
+            for file_configuration in config.files:
+                updater = FileUpdater(file_configuration)
+                print("* {}: ".format(file_configuration.path))
+                changes = updater.get_summary(config.version, new_version)
+                show_version_updates(changes)
 
         if vcs_configuration is not None:
-            print("\nVersion control configuration")
+            print("\n* Version control configuration")
             print("Name:", vcs_configuration.name)
-            print("Commit message", vcs_configuration.commit_message)
+            print("Commit message:", vcs_configuration.commit_message)
             print("Options:", vcs_configuration.options)
 
     else:
@@ -182,8 +180,8 @@ def main():
             repo_class = VCS_REPO_MAP.get(vcs_configuration.name)
             if repo_class is None:
                 fatal_error(
-                    "The requested version control "
-                    "system {} is not supported.".format(vcs_configuration.name)
+                    "The requested version control system {} "
+                    "is not supported.".format(vcs_configuration.name)
                 )
 
             try:

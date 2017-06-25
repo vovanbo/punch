@@ -1,12 +1,13 @@
+import os
 import subprocess
 
-import os
 import pytest
-from punch.vcs_configuration import VCSConfiguration
 
-from punch.vcs_repositories.exceptions import RepositorySystemError, \
-    RepositoryStatusError, RepositoryConfigurationError
-from punch.vcs_repositories.git_repo import GitRepo
+from punch.vcs.configuration import VCSConfiguration
+from punch.vcs.exceptions import (
+    RepositorySystemError, RepositoryStatusError, RepositoryConfigurationError
+)
+from punch.vcs.repositories import GitRepo
 
 pytestmark = pytest.mark.slow
 

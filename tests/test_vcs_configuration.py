@@ -1,5 +1,5 @@
 import pytest
-from punch.vcs_configuration import VCSConfiguration
+from punch.vcs.configuration import VCSConfiguration
 
 
 @pytest.fixture

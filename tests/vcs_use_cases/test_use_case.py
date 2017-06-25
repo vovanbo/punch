@@ -1,6 +1,6 @@
 import mock
 
-from punch.vcs_use_cases.base import VCSUseCase
+from punch.vcs.use_cases import VCSUseCase
 
 
 def test_delegate_all():

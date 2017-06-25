@@ -1,6 +1,6 @@
 import mock
 
-from punch.vcs_use_cases.release import VCSReleaseUseCase
+from punch.vcs.use_cases import VCSReleaseUseCase
 
 
 def test_pre_start_release():

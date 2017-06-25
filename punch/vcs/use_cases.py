@@ -4,3 +4,11 @@ class VCSUseCase(object):
 
     def __getattr__(self, item):
         return getattr(self.repo, item)
+
+
+class VCSReleaseUseCase(VCSUseCase):
+    pass
+
+
+class VCSTagUseCase(VCSUseCase):
+    pass

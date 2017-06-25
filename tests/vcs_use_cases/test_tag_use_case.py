@@ -1,6 +1,6 @@
 import mock
 
-from punch.vcs_use_cases.tag import VCSTagUseCase
+from punch.vcs.use_cases import VCSTagUseCase
 
 
 def test_pre_tag():
