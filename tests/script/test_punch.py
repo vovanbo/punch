@@ -13,7 +13,7 @@ def test_punch_version_flag(test_environment):
     # Copyright (C) 2016 Leonardo Giordani
 
     expected_output = """
-    Copyright \(C\) \d{4} Leonardo Giordani
+    Copyright \(C\) \d{4}\-\d{4} Leonardo Giordani
     This is free software, see the LICENSE file.
     Source: https://github.com/lgiordani/punch
     Documentation: http://punch.readthedocs.io/en/latest/
