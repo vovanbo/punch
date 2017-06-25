@@ -7,8 +7,7 @@ import sys
 from datetime import datetime
 
 import punch
-from punch.action import Action
-from punch.config import PunchConfig, ConfigurationVersionError
+from punch.config import PunchConfig
 from punch.defaults import DEFAULT_CONFIG, DEFAULT_CONFIG_FILE
 from punch.file_updater import FileUpdater
 from punch.replacer import Replacer
@@ -107,14 +106,14 @@ def main():
 
     try:
         config = PunchConfig(args.config_file)
-    except (ConfigurationVersionError, ValueError) as exc:
+    except Exception as exc:
         fatal_error(
             "An error occurred while reading the configuration file.",
             exc
         )
 
     if not args.simulate:
-        if len(config.files) == 0:
+        if not config.files:
             fatal_error("You didn't configure any file")
 
     new_version = config.version.copy()
