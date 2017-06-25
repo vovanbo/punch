@@ -82,9 +82,10 @@ def test_file_conf_fr_str_path_cannot_be_overridden_by_local_variables(
 
 def test_file_configuration_from_dict_local_variables_take_precedence(
         file_configuration_dict, global_variables):
-    fconf = FileConfiguration.from_dict(
-        file_configuration_dict,
-        global_variables
+    fconf = FileConfiguration(
+        path=file_configuration_dict['path'],
+        local_variables=file_configuration_dict,
+        global_variables=global_variables
     )
 
     assert fconf.path == 'pkg/__init__.py'
@@ -95,9 +96,10 @@ def test_file_configuration_from_dict_local_variables_take_precedence(
 def test_file_conf_fr_dict_path_cannot_be_overridden_by_global_variables(
         file_configuration_dict, global_variables):
     global_variables['path'] = 'a/new/path'
-    fconf = FileConfiguration.from_dict(
-        file_configuration_dict,
-        global_variables
+    fconf = FileConfiguration(
+        path=file_configuration_dict['path'],
+        local_variables=file_configuration_dict,
+        global_variables=global_variables
     )
 
     assert fconf.path == 'pkg/__init__.py'

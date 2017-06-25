@@ -3,7 +3,7 @@ import jinja2
 
 
 class FileConfiguration(object):
-    def __init__(self, filepath, local_variables, global_variables=None):
+    def __init__(self, path, local_variables, global_variables=None):
         self.config = {}
         if global_variables:
             self.config.update(global_variables)
@@ -15,11 +15,8 @@ class FileConfiguration(object):
                 value = value.decode('utf8')
 
             template = env.from_string(value)
-            new_local_variables[key] = template.render(GLOBALS=global_variables)
+            new_local_variables[key] = \
+                template.render(GLOBALS=global_variables)
 
         self.config.update(new_local_variables)
-        self.path = filepath
-
-    @classmethod
-    def from_dict(cls, dic, global_variables):
-        return cls(dic['path'], dic, global_variables)
+        self.path = path

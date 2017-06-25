@@ -43,12 +43,15 @@ class PunchConfig(object):
         for file_configuration in files:
             if isinstance(file_configuration, collections.Mapping):
                 self.files.append(
-                    FileConfiguration.from_dict(file_configuration,
-                                                self.globals)
+                    FileConfiguration(path=file_configuration['path'],
+                                      local_variables=file_configuration,
+                                      global_variables=self.globals)
                 )
             else:
                 self.files.append(
-                    FileConfiguration(file_configuration, {}, self.globals)
+                    FileConfiguration(path=file_configuration,
+                                      local_variables={},
+                                      global_variables=self.globals)
                 )
 
         assert 'version' in self._configuration, \
