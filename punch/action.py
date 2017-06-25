@@ -1,20 +1,28 @@
 import sys
 
 
-class Action(object):
-
+class Action:
     @classmethod
-    def from_dict(cls, dic):
-        action_type = dic.pop('type')
-
+    def factory(cls, **kwargs):
+        action_type = kwargs.pop('type')
         class_name = action_type.title().replace("_", "") + 'Action'
         action_class = getattr(sys.modules[__name__], class_name)
+        return action_class(**kwargs)
 
-        return action_class(**dic)
+    def process_version(self, version):
+        raise NotImplementedError()
 
 
-class ConditionalResetAction:
+class RefreshAction(Action):
+    def __init__(self, refresh_fields, fallback_field):
+        self.refresh_fields = refresh_fields
+        self.fallback_field = fallback_field
 
+    def process_version(self, version):
+        raise NotImplementedError()
+
+
+class ConditionalResetAction(Action):
     def __init__(self, field, update_fields=None):
         self.field = field
         self.update_fields = update_fields

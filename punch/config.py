@@ -4,6 +4,7 @@ from copy import copy
 
 import six
 
+from punch.action import Action
 from punch.file_configuration import FileConfiguration
 from punch.version import Version
 from punch.version_part import VersionPart, IntegerVersionPart
@@ -72,7 +73,8 @@ class PunchConfig(object):
         if self.vcs is not None and 'name' not in self.vcs:
             raise ValueError("Missing key 'name' in VCS configuration")
 
-        self.actions = self._configuration.get('actions', {})
+        actions = self._configuration.get('actions', {})
+        self.actions = {k: Action.factory(**v) for k, v in actions.items()}
 
     def dump(self, version=None, target=None, verbose=False):
         assert isinstance(version, Version), 'Version instance is required.'

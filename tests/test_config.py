@@ -4,6 +4,8 @@ from copy import copy
 
 import sys
 
+from punch.action import RefreshAction
+
 try:
     from json.decoder import JSONDecodeError
 except ImportError:
@@ -67,6 +69,7 @@ CONFIG_FILE_CONTENT_WRONG_VCS = {
         'annotation_message': '',
     }
 }
+
 
 @pytest.fixture
 def config_file_content():
@@ -249,12 +252,11 @@ def test_read_actions(temp_empty_dir, config_file_content_with_actions,
                config_file_name)
     cf = PunchConfig(os.path.join(temp_empty_dir, config_file_name))
 
-    expected_value = {
-        'mbuild': {
-            'type': 'refresh',
-            'refresh_fields': ['year', 'month'],
-            'fallback_field': 'build'
-        }
-    }
+    expected_action = RefreshAction(refresh_fields=['year', 'month'],
+                                    fallback_field='build')
 
-    assert cf.actions == expected_value
+    assert 'mbuild' in cf.actions
+
+    cf_action = cf.actions['mbuild']
+    assert cf_action.refresh_fields == expected_action.refresh_fields
+    assert cf_action.fallback_field == expected_action.fallback_field

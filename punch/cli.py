@@ -120,8 +120,7 @@ def main():
     new_version = config.version.copy()
 
     if args.action:
-        action_dict = config.actions[args.action]
-        action = Action.from_dict(action_dict)
+        action = config.actions[args.action]
         new_version = action.process_version(new_version)
     else:
         if args.part:
