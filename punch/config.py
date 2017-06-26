@@ -94,4 +94,4 @@ class PunchConfig(object):
         with open(target, 'w') as f:
             if verbose:
                 print("* Updating punch file {}".format(target))
-            json.dump(new_configuration, f)
+            json.dump(new_configuration, f, indent=4)
