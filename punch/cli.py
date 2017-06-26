@@ -4,12 +4,14 @@ import argparse
 import json
 import os
 import sys
+from collections import OrderedDict
 from datetime import datetime
 
 import punch
 from punch.config import PunchConfig
 from punch.defaults import DEFAULT_CONFIG, DEFAULT_CONFIG_FILE
 from punch.file_updater import FileUpdater
+from punch.helpers import import_file
 from punch.replacer import Replacer
 from punch.vcs.configuration import VCSConfiguration
 from punch.vcs.exceptions import RepositorySystemError
@@ -40,6 +42,59 @@ def show_version_updates(version_changes):
         print('  * {} -> {}'.format(current, new))
 
 
+def is_migration_required(*files):
+    return all([os.path.exists(f) for f in files])
+
+
+def migrate(args):
+    config_module = import_file('punch_config', args.old_config_file)
+    print('Imported config file: {}'.format(args.old_config_file))
+    version_module = import_file('punch_version',
+                                 args.old_version_file)
+    print('Imported version file: {}'.format(args.old_version_file))
+    new_config = OrderedDict()
+    new_config['format'] = 1
+    new_config['globals'] = config_module.GLOBALS
+    new_config['files'] = config_module.FILES
+    new_config['version'] = OrderedDict()
+    new_config['version']['variables'] = config_module.VERSION
+    new_config['version']['current'] = []
+    for variable in dir(version_module):
+        if not variable.startswith('__'):
+            new_config['version']['current'].append(
+                str(getattr(version_module, variable))
+            )
+    if getattr(config_module, 'VCS', None):
+        new_config['vcs'] = config_module.VCS
+    if getattr(config_module, 'ACTIONS', None):
+        new_config['actions'] = config_module.ACTIONS
+
+    if args.simulate:
+        print('\nThese files will be removed:')
+        for file_to_remove in (args.old_config_file,
+                               args.old_version_file):
+            print('  * {}'.format(file_to_remove))
+        print('\nFile "{}" will be created '
+              'with the following content:'.format(args.config_file))
+        print(json.dumps(new_config, indent=4))
+    else:
+        print('\nMigration is started.\n')
+        print('Create file "{}"'.format(args.config_file))
+        with open(args.config_file, mode='w') as f:
+            json.dump(new_config, f)
+        assert os.path.exists(args.config_file), \
+            'Config file "{}" creation ' \
+            'is failed.'.format(args.config_file)
+        print('Remove files:')
+        for file_to_remove in (args.old_config_file,
+                               args.old_version_file):
+            os.remove(file_to_remove)
+            assert not os.path.exists(file_to_remove), \
+                'File "{}" removing is failed.'.format(file_to_remove)
+            print('  * {}'.format(file_to_remove))
+        print('\nMigration is successful!')
+
+
 def main():
     parser = argparse.ArgumentParser(
         description='Manages file content with versions.'
@@ -67,6 +122,22 @@ def main():
         help='Simulates the version increment and prints a summary '
              'of the relevant data'
     )
+    parser.add_argument(
+        '--migrate',
+        action='store_true',
+        help='Run migration from deprecated punch '
+             'configuration and version files to punch.json. Can be simulated.'
+    )
+    parser.add_argument('--old-config-file', action='store',
+                        help="Used in migration. Pass it if you used "
+                             "custom config file, "
+                             "different than 'punch_config.py'.",
+                        default='punch_config.py')
+    parser.add_argument('--old-version-file', action='store',
+                        help="Used in migration. Pass it if you used "
+                             "custom version file, "
+                             "different than 'punch_version.py'.",
+                        default='punch_version.py')
 
     args = parser.parse_args()
 
@@ -83,10 +154,31 @@ def main():
         print('Documentation: http://punch.readthedocs.io/en/latest/')
         sys.exit(0)
 
+    if args.migrate is True:
+        if not is_migration_required(args.old_config_file,
+                                     args.old_version_file):
+            print('Migration is not required.')
+        else:
+            migrate(args)
+        sys.exit(0)
+
     if args.init is True:
+        if is_migration_required(args.old_config_file, args.old_version_file):
+            print('WARNING!\n')
+            print('Deprecated configuration and version files is detected.')
+            print('Migration to new version of punch is required.')
+            print('To migrate run the following command:')
+            print('punch -c {} --migrate\n'.format(args.config_file))
+            sys.exit(1)
+
         if not os.path.exists(args.config_file):
             with open(args.config_file, 'w') as f:
                 json.dump(DEFAULT_CONFIG, f, indent=4)
+            print('* Created file "{}" with content:'.format(args.config_file))
+            print(json.dumps(DEFAULT_CONFIG, indent=4))
+        else:
+            print('File "{}" already exists. '
+                  'Initialization is not required.'.format(args.config_file))
         sys.exit(0)
 
     if not any([args.part, args.set_part, args.action]):
