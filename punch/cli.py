@@ -82,15 +82,16 @@ def migrate(args):
         print('Create file "{}"'.format(args.config_file))
         with open(args.config_file, mode='w') as f:
             json.dump(new_config, f)
-        assert os.path.exists(args.config_file), \
-            'Config file "{}" creation ' \
-            'is failed.'.format(args.config_file)
+        if not os.path.exists(args.config_file):
+            fatal_error('Config file "{}" creation '
+                        'is failed.'.format(args.config_file))
         print('Remove files:')
         for file_to_remove in (args.old_config_file,
                                args.old_version_file):
             os.remove(file_to_remove)
-            assert not os.path.exists(file_to_remove), \
-                'File "{}" removing is failed.'.format(file_to_remove)
+            if os.path.exists(file_to_remove):
+                fatal_error('File "{}" removing '
+                            'is failed.'.format(file_to_remove))
             print('  * {}'.format(file_to_remove))
         print('\nMigration is successful!')
 
@@ -164,12 +165,12 @@ def main():
 
     if args.init is True:
         if is_migration_required(args.old_config_file, args.old_version_file):
-            print('WARNING!\n')
-            print('Deprecated configuration and version files is detected.')
-            print('Migration to new version of punch is required.')
-            print('To migrate run the following command:')
-            print('punch -c {} --migrate\n'.format(args.config_file))
-            sys.exit(1)
+            fatal_error('WARNING!\n'
+                        'Deprecated configuration and version files '
+                        'is detected.\n'
+                        'Migration to new version of punch is required.\n'
+                        'To migrate run the following command:\n'
+                        'punch -c {} --migrate\n'.format(args.config_file))
 
         if not os.path.exists(args.config_file):
             with open(args.config_file, 'w') as f:
