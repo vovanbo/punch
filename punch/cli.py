@@ -26,7 +26,7 @@ VCS_REPO_MAP = {
 def fatal_error(message, exception=None):
     print(message)
     if exception is not None:
-        print("Exception {}: {}".format(exception.__class__.__name__,
+        print('Exception {}: {}'.format(exception.__class__.__name__,
                                         str(exception)))
     sys.exit(1)
 
@@ -37,15 +37,15 @@ def show_version_parts(version):
 
 def show_version_updates(version_changes):
     for current, new in version_changes:
-        print("  * {} -> {}".format(current, new))
+        print('  * {} -> {}'.format(current, new))
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Manages file content with versions."
+        description='Manages file content with versions.'
     )
     parser.add_argument('-c', '--config-file', action='store',
-                        help="Config file", default=DEFAULT_CONFIG_FILE)
+                        help='Config file', default=DEFAULT_CONFIG_FILE)
     parser.add_argument('-p', '--part', action='store')
     parser.add_argument('--set-part', action='store')
     parser.add_argument('-a', '--action', action='store')
@@ -53,19 +53,19 @@ def main():
     parser.add_argument('--verbose', action='store_true',
                         help="Be verbose")
     parser.add_argument('--version', action='store_true',
-                        help="Print the Punch version and project information")
+                        help='Print the Punch version and project information')
     parser.add_argument(
         '--init',
         action='store_true',
-        help="Writes default initialization files "
-             "(does not overwrite existing ones)"
+        help='Writes default initialization files '
+             '(does not overwrite existing ones)'
     )
     parser.add_argument(
         '-s',
         '--simulate',
         action='store_true',
-        help="Simulates the version increment and prints a summary "
-             "of the relevant data"
+        help='Simulates the version increment and prints a summary '
+             'of the relevant data'
     )
 
     args = parser.parse_args()
@@ -75,12 +75,12 @@ def main():
     repo = None
 
     if args.version is True:
-        print("Punch version {}".format(punch.__version__))
-        print("Copyright (C) 2016-{} "
-              "Leonardo Giordani".format(datetime.now().strftime('%Y')))
-        print("This is free software, see the LICENSE file.")
-        print("Source: https://github.com/lgiordani/punch")
-        print("Documentation: http://punch.readthedocs.io/en/latest/")
+        print('Punch version {}'.format(punch.__version__))
+        print('Copyright (C) 2016-{:%Y} '
+              'Leonardo Giordani'.format(datetime.now()))
+        print('This is free software, see the LICENSE file.')
+        print('Source: https://github.com/lgiordani/punch')
+        print('Documentation: http://punch.readthedocs.io/en/latest/')
         sys.exit(0)
 
     if args.init is True:
@@ -90,28 +90,27 @@ def main():
         sys.exit(0)
 
     if not any([args.part, args.set_part, args.action]):
-        fatal_error("You must specify one of --part, --set-part, or --action")
+        fatal_error('You must specify one of --part, --set-part, or --action')
 
     if args.set_part and args.reset_on_set:
         set_parts = args.set_part.split(',')
         if len(set_parts) > 1:
-            fatal_error("If you specify --reset-on-set you may set "
-                        "only one value")
+            fatal_error('If you specify --reset-on-set you may set '
+                        'only one value')
 
     if args.verbose:
-        print("## Punch version {}".format(punch.__version__))
+        print('## Punch version {}'.format(punch.__version__))
 
     try:
         config = PunchConfig(args.config_file)
     except Exception as exc:
         fatal_error(
-            "An error occurred while reading the configuration file.",
+            'An error occurred while reading the configuration file.',
             exc
         )
 
-    if not args.simulate:
-        if not config.files:
-            fatal_error("You didn't configure any file")
+    if not args.simulate and not config.files:
+        fatal_error("You didn't configure any file")
 
     new_version = config.version.copy()
 
@@ -149,47 +148,47 @@ def main():
         vcs_configuration = None
 
     if args.simulate:
-        print("* Current version")
+        print('* Current version')
         show_version_parts(config.version)
 
-        print("\n* New version")
+        print('\n* New version')
         show_version_parts(new_version)
 
         changes = global_replacer.run_all_serializers(config.version,
                                                       new_version)
 
-        print("\n* Global version updates")
+        print('\n* Global version updates')
         show_version_updates(changes)
 
         if config.files:
-            print("\nConfigured files")
+            print('\nConfigured files')
             for file_configuration in config.files:
                 updater = FileUpdater(file_configuration)
-                print("* {}: ".format(file_configuration.path))
+                print('* {}: '.format(file_configuration.path))
                 changes = updater.get_summary(config.version, new_version)
                 show_version_updates(changes)
 
         if vcs_configuration is not None:
-            print("\n* Version control configuration")
-            print("Name:", vcs_configuration.name)
-            print("Commit message:", vcs_configuration.commit_message)
-            print("Options:", vcs_configuration.options)
+            print('\n* Version control configuration')
+            print('Name:', vcs_configuration.name)
+            print('Commit message:', vcs_configuration.commit_message)
+            print('Options:', vcs_configuration.options)
 
     else:
         if vcs_configuration is not None:
             repo_class = VCS_REPO_MAP.get(vcs_configuration.name)
             if repo_class is None:
                 fatal_error(
-                    "The requested version control system {} "
-                    "is not supported.".format(vcs_configuration.name)
+                    'The requested version control system "{}" '
+                    'is not supported.'.format(vcs_configuration.name)
                 )
 
             try:
                 repo = repo_class(os.getcwd(), vcs_configuration)
             except RepositorySystemError as exc:
                 fatal_error(
-                    "An error occurred while initializing "
-                    "the version control repository",
+                    'An error occurred while initializing '
+                    'the version control repository',
                     exc
                 )
         else:
@@ -204,7 +203,7 @@ def main():
 
         for file_configuration in config.files:
             if args.verbose:
-                print("* Updating file {}".format(file_configuration.path))
+                print('* Updating file {}'.format(file_configuration.path))
             updater = FileUpdater(file_configuration)
             updater(config.version, new_version)
 
