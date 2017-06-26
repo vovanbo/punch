@@ -19,7 +19,8 @@ class ConfigurationVersionError(Exception):
 class PunchConfig(object):
     def __init__(self, source):
         with open(source) as f:
-            self._configuration = json.load(f)
+            self._configuration = \
+                json.load(f, object_pairs_hook=collections.OrderedDict)
 
         self._source = source
 
