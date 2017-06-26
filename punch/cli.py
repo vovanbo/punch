@@ -4,7 +4,7 @@ import argparse
 import json
 import os
 import sys
-from collections import OrderedDict
+from collections import OrderedDict, MutableMapping
 from datetime import datetime
 
 import punch
@@ -58,12 +58,17 @@ def migrate(args):
     new_config['files'] = config_module.FILES
     new_config['version'] = OrderedDict()
     new_config['version']['variables'] = config_module.VERSION
-    new_config['version']['current'] = []
-    for variable in dir(version_module):
-        if not variable.startswith('__'):
-            new_config['version']['current'].append(
-                str(getattr(version_module, variable))
-            )
+    variables = []
+    for variable in new_config['version']['variables']:
+        if isinstance(variable, MutableMapping):
+            variables.append(variable['name'])
+        else:
+            variables.append(variable)
+    new_config['version']['values'] = []
+    for variable in variables:
+        new_config['version']['values'].append(
+            str(getattr(version_module, variable))
+        )
     if getattr(config_module, 'VCS', None):
         new_config['vcs'] = config_module.VCS
     if getattr(config_module, 'ACTIONS', None):
