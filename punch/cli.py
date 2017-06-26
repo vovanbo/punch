@@ -86,7 +86,7 @@ def migrate(args):
         print('\nMigration is started.\n')
         print('Create file "{}"'.format(args.config_file))
         with open(args.config_file, mode='w') as f:
-            json.dump(new_config, f)
+            json.dump(new_config, f, indent=4)
         if not os.path.exists(args.config_file):
             fatal_error('Config file "{}" creation '
                         'is failed.'.format(args.config_file))
