@@ -88,7 +88,7 @@ class PunchConfig(object):
         target = self._source if target is None else target
 
         new_configuration = copy(self._configuration)
-        new_configuration['version']['current'] = \
+        new_configuration['version']['values'] = \
             [str(p.value) for p in version.values()]
 
         with open(target, 'w') as f:
